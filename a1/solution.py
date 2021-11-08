@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
-from numba import jit, vectorize
+from numba import jit, vectorize, guvectorize
 
 
 @vectorize(["float64(float64, float64, float64, float64)"], nopython=True, target='parallel')
@@ -43,6 +43,57 @@ def _ghatv(_x, _y, nx, ny, dx, dy):
         else: return - ny / dy
 
 
+@guvectorize('void(int64[:], int64, int64[:], int64[:])',
+             '(),(),(n)->(n)',
+             target='parallel', nopython=True)
+def _neighboors_interior(i, N, _, n):
+    # N = dofs per row
+    elems_per_row = (N - 1) * 2
+    p = i[0] // elems_per_row
+    k = i[0] // 2
+
+    if i[0] % 2 == 0:
+        n[0] = k + p
+        n[1] = k + 1 + p
+        n[2] = k + N + p
+
+    else:
+        n[0] = k + N + p + 1
+        n[1] = k + N + p
+        n[2] = k + p + 1
+
+
+def neighboors_interior(i, N):
+    return _neighboors_interior(i, N, np.ones((1, 3), np.int64))
+
+
+@guvectorize('void(int64[:], int64, int64[:], int64[:])',
+             '(),(),(n)->(n)',
+             target='parallel', nopython=True)
+def _neighboors_exterior(i, N, _, n):
+    # N = dofs per row
+    i = i[0]
+    elems_per_row = (N - 1)
+    border = i // elems_per_row
+
+    if border == 0:
+        n[0] = i
+        n[1] = i + 1
+    elif border == 1:
+        n[0] = N * (1 + i - elems_per_row) - 1
+        n[1] = n[0] + N
+    elif border == 2:
+        n[0] = (N**2 - 1) - (i - 2 * elems_per_row)
+        n[1] = n[0] - 1
+    else:
+        n[0] = N * (N - (i - 3 * elems_per_row) - 1)
+        n[1] = n[0] - N
+
+
+def neighboors_exterior(i, N):
+    return _neighboors_exterior(i, N, np.ones((1, 2), np.int64))
+
+
 def coords(indexes, dx, dy):
     Nx = round(1 / dx) + 1
     Ny = round(1 / dy) + 1
@@ -51,74 +102,70 @@ def coords(indexes, dx, dy):
     return x, y
 
 
-@jit(nopython=True, fastmath=True)
-def neighboors(i, dofs_per_row):
-    N = dofs_per_row
-    elems_per_row = (N - 1) * 2
-    p = i // elems_per_row
-    k = i // 2
-    if i % 2 == 0:
-        return (k + p, k + 1 + p, k + N + p)
-    return (k + N + p + 1, k + N + p, k + p + 1)
+def assemble(m, neighboors, ndofs):
+    M = sparse.csr_matrix((ndofs, ndofs))
+
+    # loop over all elements
+    for n in neighboors:
+        M[n.reshape(3, 1), n.reshape(1, 3)] += m
+
+    return M
+
+def assemble_mass(dx, dy):
+    m = dx * dy * np.array([
+        [1/12, 1/24, 1/24],
+        [1/24, 1/12, 1/24],
+        [1/24, 1/24, 1/12],
+    ])
+
+    dofs_x = round(1 / dx) + 1
+    dofs_y = round(1 / dy) + 1
+    ndofs = dofs_x * dofs_y
+
+    nelems = 2 * (dofs_x - 1) * (dofs_y - 1)
+    elems = np.arange(nelems)
+
+    return assemble(m, neighboors_interior(elems, dofs_x), ndofs)
+
+
+def assemble_boundary_mass(dx, dy):
+    # must depend on dy to handle nonunuiform grid
+    m = dx * np.array([
+        [1/3, 1/6],
+        [1/6, 1/3],
+    ])
+
+    dofs_x = round(1 / dx) + 1
+    dofs_y = round(1 / dy) + 1
+    ndofs = dofs_x * dofs_y
+
+    nelems = 4 * (dofs_x - 1)
+    elems = np.arange(nelems)
+
+    M = sparse.csr_matrix((ndofs, ndofs))
+
+    # loop over all elements
+    for n in neighboors_exterior(elems, dofs_x):
+        M[n.reshape(2, 1), n.reshape(1, 2)] += m
+
+    return M
 
 
 def assemble_operator(dx, dy):
-
-    Nx = 2 * round(1 / dx)
-    Ny = round(1 / dy)
-    dofs_x = round(1 / dx) + 1
-    dofs_y = round(1 / dy) + 1
-
-    M = dofs_x * dofs_y
-    A = sparse.csr_matrix((M, M))
-
-    V = (dx * dy) / 2
-
-    xd = 1 / dx**2 * V
-    yd = 1 / dy**2 * V
-
-    As = np.array([
-            [xd + yd, -xd, -yd],
-            [    -xd,  xd, 0.0],
-            [    -yd, 0.0,  yd]
+    a = np.array([
+        [(dx**2 + dy**2) / (2 * dx * dy), - dy / (2 * dx), - dx / (2 * dy)],
+        [                - dy / (2 * dx),   dy / (2 * dx),             0.0],
+        [                - dx / (2 * dy),             0.0,   dx / (2 * dy)],
     ])
 
-    for i in range(Ny * Nx):
-
-        n = neighboors(i, dofs_x)
-        A[np.ix_(n, n)] += As
-
-    return A
-
-
-def assemble_mass(dx, dy):
-
-    Nx = 2 * round(1 / dx)
-    Ny = round(1 / dy)
     dofs_x = round(1 / dx) + 1
     dofs_y = round(1 / dy) + 1
+    ndofs = dofs_x * dofs_y
 
-    M = dofs_x * dofs_y
-    Ma = sparse.csr_matrix((M, M))
+    nelems = 2 * (dofs_x - 1) * (dofs_y - 1)
+    elems = np.arange(nelems)
 
-    V = (dx * dy) / 2
-
-    xd = 1 / dx**2 * V
-    yd = 1 / dy**2 * V
-
-    Ms = np.array([
-            [xd + yd, -xd, -yd],
-            [    -xd,  xd, 0.0],
-            [    -yd, 0.0,  yd]
-    ])
-
-    for i in range(Ny * Nx):
-
-        n = neighboors(i, dofs_x)
-        A[np.ix_(n, n)] += As
-
-    return A
-
+    return assemble(a, neighboors_interior(elems, dofs_x), ndofs)
 
 
 class LaplaceOnUnitSquare:
@@ -127,13 +174,16 @@ class LaplaceOnUnitSquare:
         self.N = round(1 / dx) + 1
 
         self.A = assemble_operator(dx, dx)
-        self.M = self.A.shape[0]
-        self.sol = np.zeros(self.M)
+        self.M = assemble_mass(dx, dx)
+        self.Mb = assemble_boundary_mass(dx, dx)
+
+        self.ndofs = self.A.shape[0]
+        self.dofs = np.arange(self.ndofs, dtype=np.int64)
+        self.sol = np.zeros(self.ndofs)
         self.boundary_set = set()
 
-        self.dofs = np.arange(self.M, dtype=np.int64)
         x, y = coords(self.dofs, dx, dx)
-        self.rhs = rhs(x, y)
+        self.rhs = self.M @ rhs(x, y)
 
     def boundary(self, e):
         N = round(1 / self.dx) + 1
@@ -157,13 +207,14 @@ class LaplaceOnUnitSquare:
     def set_neumann(self, e, fn):
         boundary = self.boundary(e)
         x, y = coords(boundary, self.dx, self.dx)
-        self.rhs[boundary] += fn(x, y) * self.dx
-        
+
+        self.rhs += self.Mb[:, boundary] @ fn(x, y)
+
     def solve(self):
         active_dofs = [i for i in self.dofs if i not in self.boundary_set]
         self.sol[active_dofs] = spsolve(
-                self.A[active_dofs, :][:, active_dofs],
-                self.rhs[active_dofs]
+            self.A[active_dofs, :][:, active_dofs],
+            self.rhs[active_dofs]
         )
         return self.sol
 
@@ -175,7 +226,7 @@ class LaplaceOnUnitSquare:
         # somewhat inefficient since we evaluate all basis functions in every point
         return np.sum(self.sol * _hatv(xx, yy, self.dx, self.dx), axis=-1)
 
-    def plot(self, k=50):
+    def plot(self, k=100):
         x, y = np.meshgrid(np.linspace(0, 1, k), np.linspace(0, 1, k))
         z = self.evaluate(x, y)
         plt.imshow(z, interpolation=None, origin='lower')
