@@ -1,0 +1,161 @@
+\documentclass[12pt,a4paper]{report}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{plotmarks}
+\usetikzlibrary{patterns,shapes.arrows}
+\usepackage{pgfplots}
+
+
+\DeclareMathOperator{\spn}{span}
+
+\begin{document}
+	
+\section*{P1: Solve Laplace`s equation on the unit square}
+
+Solve the equation
+\begin{align}
+\label{equation}
+- \Delta u(x, y) = f(x, y),& \quad (x, y) \in \Omega = [0, 1] \times [0, 1] \\
+\label{dirch}
+u(x, y) = u_\mathcal{D},& \quad (x, y) \in \partial\Omega_{\mathcal{D}} \subset \partial\Omega\\
+\label{neum}
+\frac{d u(x, y)}{d\mathbf{n}} = g_\mathcal{N},& \quad (x, y) \in \partial\Omega_{\mathcal{N}} = \partial\Omega / \partial \Omega_\mathcal{D}
+\end{align}
+using a linear approximation finite element approach.
+
+\subsection*{Weak form}
+Define a space of test-functions $V$ where $V = \{v | v\in L^2, v(x, y)=0, (x, y) \in \partial \Omega_\mathcal{D}\}$. Multiplying equation \eqref{equation} with $v \in V$ and integrating over the domain yields
+\begin{align}
+    \int_{\Omega} \Delta u v dx + \int_\Omega f v dx = 0.
+\end{align}
+Integration by parts and using the fact that $v = 0$ on the Dirichlet boundary gives us
+\begin{align}
+- \int_{\Omega} \nabla u \cdot \nabla v dx + \int_{\partial\Omega_\mathbf{N}} (\nabla u \cdot n) v ds + \int_\Omega f v dx = 0
+\end{align}
+where the Neumann boundary condition becomes part of the right-hand-side
+\begin{align}
+\label{weakform}
+\int_{\Omega} \nabla u \cdot \nabla v dx = \int_{\partial\Omega_\mathbf{N}} g_\mathcal{N} v ds + \int_\Omega f v dx.
+\end{align}
+
+\subsection*{Grid}
+
+The domain $[0, 1] \times [0, 1]$ is divided into a Cartesian grid with cell width $\Delta x$. Triangle elements are constructed by splitting each cell from the top left to the bottom right corner to make right angled triangles. The reference element is a right triangle with the right corner in $(0, 0)$, the second in $(0, 1)$ and the third in $(1, 0)$. All affine functions over the element can be constructed from linear combinations of the three basis functions
+\begin{align}
+    \tilde{\phi}_1(x, y) = 1 - x - y \\
+    \tilde{\phi}_2(x, y) = x \\
+    \tilde{\phi}_3(x, y) = y
+\end{align}
+where each function is nonzero in only one of the element`s corners (nodes). \\
+
+Using the fact that every element in the grid can be mapped to the reference element by an affine transformation lets the reference element basis functions define functions $\phi_j$ in every element in the grid, creating a basis in the whole domain. Enforcing continuity between elements "fuses" the basis functions that are nonzero in the same node to "hat" functions $\psi_{i}(x, y) = \sum_{n_i} \phi_{n_i}(x, y)$ where $n_i$ runs over the set of $\phi_j$ that are nonzero in the node $i$. These linearly independent functions defines our finite element basis.
+
+\section*{System}
+
+$u,f,g_\mathcal{N}$ in equation \eqref{weakform} are approximated using the finite element basis functions defined above. The approximations are obtained by interpolation. Requiring that the integral equation holds for every $v \in \spn\{\psi_1\ldots\psi_N\}$ transforms the weak form into a linear algebraic equation
+\begin{align}
+    \label{system}
+    \mathbf{A}_0\mathbf{u}_0 = \mathbf{M}_0\mathbf{f}_0 + \mathbf{M}_0^b \mathbf{g}_0
+\end{align}
+in terms of the approximation coefficients. Where
+\begin{align}
+    A_{ij} = \int_{\Omega} \nabla \psi_i \cdot \nabla \psi_j dx
+\end{align}
+defines the stiffness matrix $\mathbf{A}_0$. $\mathbf{M}_0$ and $\mathbf{M}_0^b$ are defined similarly.\\
+
+\subsection*{Dirichlet boundary}
+$\mathbf{u}_0$ is not unique without adding a Dirichlet boundary condition. It is enforced by splitting $\mathbf{u}_0= \tilde{\mathbf{u}} + \tilde{\mathbf{u}}_\mathcal{D}$ where $\tilde{\mathbf{u}}_\mathcal{D}$ contains only the coefficients connected to nodes on $\partial\Omega_\mathcal{D}$. The Dirichlet boundary value $u_\mathcal{D}(x, y)$ is then interpolated using the coefficients $\tilde{\mathbf{u}}_\mathcal{D}$. Replacing $\mathbf{u}_0$ in equation \eqref{system} gives us
+\begin{align}
+\label{system_full}
+\mathbf{A}_0 \tilde{\mathbf{u}} = \mathbf{M}_0\mathbf{f}_0 + \mathbf{M}_0^b \mathbf{g}_0 - \mathbf{A}_0 \tilde{\mathbf{u}}_\mathcal{D}.
+\end{align}
+Reformulating the equation only in terms of the unknowns in $\tilde{\mathbf{u}}$ (ignoring the rows that are 0) lets the equation above be rewritten as 
+\begin{align}
+\label{system_fin}
+\mathbf{A} \mathbf{u} = \mathbf{r}_{f,g,d}.
+\end{align}
+
+
+\subsection*{Convergence test}
+To measure convergence rate, the problem is solved for a rhs with known solution, and the $l_2$ error is measured for different $\Delta x$. The error is calculated as 
+\begin{equation}
+    l_2^{err}(\mathbf{u}) = \sqrt{\sum_i \Delta x^2 (u_i - \bar{u}(x_i, y_i))^2}
+\end{equation} where $\mathbf{u}$ is the coefficient vector defined in equation \eqref{system_fin} and $\bar{u}$ is the known solution. $x_i, y_i$ are the coordinates of the node associated with the coefficient $u_i$. The rhs used is
+\begin{align}
+\bar{f}(x, y) = \sin{\pi y^2}(2\pi \cos{\pi x^2} - 4 \pi x^2 \sin{\pi x^2}) \\
+\nonumber
+ + \sin{\pi x^2}(2 \pi \cos{\pi y^2} - 4 \pi y^2 \sin{\pi y^2})
+\end{align}
+with known solution
+\begin{align}
+\bar{u} = \sin{\pi x^2}\sin{\pi y^2}.
+\end{align}
+
+
+\begin{figure}
+	\centering
+	\input{convergence_plot.tex}
+	\caption{Error decreases approximately $\mathcal{O}(\Delta x^2)$. }
+\end{figure}
+
+\subsection*{Solution}
+The task was to find the solution for the rhs
+\begin{align}
+\label{rhs}
+f(x, y) = \sin{\pi y^2}(\pi \cos{\pi x^2} - \pi x^2 \sin{\pi x^2}) \\
+\nonumber
++ \sin{\pi x^2}(2 \pi \cos{\pi y^2} - 4 \pi y^2 \sin{\pi y^2}).
+\end{align}
+See figure \ref{solution} for the obtained solution for the above rhs with zero Dirichlet boundary conditions.
+
+\begin{figure}
+	\centering
+	\input{problem.tex}
+	\caption{\label{solution}Solution to the PDE with rhs from equation \eqref{rhs}.}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\input{linear.tex}
+	\caption{Experiment with nonzero Dirichlet boundary.}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\input{neumann.tex}
+	\caption{Experiment with Neumann boundary.}
+\end{figure}
+
+\section*{P2: Classify the equations}
+\begin{enumerate}[label=\alph*]
+	\item Scalar nonlinear time dependent PDE.
+	\item Scalar second order ODE.
+	\begin{itemize}
+		\item Example initial value: $u(0) = 0$.
+	\end{itemize}
+	\item Vector valued linear ODE.
+	\begin{itemize}
+	    \item Example initial value: $\mathbf{u}(-1) = \mathbf{0}$.
+    \end{itemize}
+	\item Linear algebraic equation system.
+	\item A system of time dependent PDE:s describing a local conservation law in a one dimensional domain.
+	\begin{itemize}
+		\item Example equation: 1D Euler equations.
+		\item Example initial value: $\mathbf{u}(x, 0) = \mathbf{c}(x), \quad x\in [0, 1]$.
+		\item Example Dirichlet boundary condition: $\mathbf{u}(0, t) = \mathbf{c}(t), \quad t\in[0, 1]$.
+		\item Example in-flow boundary condition: $\mathbf{f}(\mathbf{u})(0, t) = \mathbf{c}(t), \quad t\in[0, 1]$.
+	\end{itemize}
+		\item A system of time dependent PDE:s describing a local conservation law. Coupled with a scalar ODE defining a time dependent Dirichlet type boundary condition(?) on the intersection of the non-overlapping regions $\Omega_1$ and $\Omega_2$.
+	\begin{itemize}
+		\item Example initial value: $\mathbf{u}(\mathbf{x}, 0) = \mathbf{c}(\mathbf{x}), \quad \mathbf{x}\in \Omega_1, \quad y(\mathbf{z}, 0) = h(\mathbf{z}), \quad \mathbf{z} \in \Omega_2$.
+		\item Example Dirichlet boundary condition: (together with the condition in the task) $\mathbf{u}(\mathbf{x}, t) \perp \mathbf{n} = \mathbf{0}, \quad \mathbf{x}\in\Omega_1 \cap \Omega_2, \quad t\in[0, 1]$ and $\mathbf{u}(\mathbf{x}, t) = \mathbf{c}(t), \quad \mathbf{x} \in \partial \Omega_1 / \Omega_2, \quad t\in[0, 1]$.
+	\end{itemize}
+\end{enumerate}
+
+
+	
+\end{document}
