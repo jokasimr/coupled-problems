@@ -163,8 +163,9 @@ def assemble_stiffness(dx, dy):
 
 
 class LaplaceOnUnitSquare:
-    def __init__(self, dx, rhs):
+    def __init__(self, dx, f):
         self.dx = dx
+        self.f = f
         self.N = round(1 / dx) + 1
 
         self.A = assemble_stiffness(dx, dx)
@@ -182,11 +183,16 @@ class LaplaceOnUnitSquare:
 
         self.ndofs = self.A.shape[0]
         self.dofs = np.arange(self.ndofs, dtype=np.int64)
+        self.reset()
+
+    def reset(self, f=None):
+        if f is None:
+            f = self.f
         self.sol = np.zeros(self.ndofs)
         self.boundary_set = set()
 
-        x, y = coords(self.dofs, dx, dx)
-        self.rhs = self.M @ rhs(x, y)
+        x, y = coords(self.dofs, self.dx, self.dx)
+        self.rhs = self.M @ f(x, y)
 
     def boundary(self, e):
         N = round(1 / self.dx) + 1
