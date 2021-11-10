@@ -1,5 +1,7 @@
+import warnings
 import matplotlib.pyplot as plt
 import numpy as np
+
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
 from numba import jit, vectorize, guvectorize
@@ -102,14 +104,16 @@ def coords(indexes, dx, dy):
     return x, y
 
 
-def assemble(m, neighboors, ndofs):
-    M = sparse.csr_matrix((ndofs, ndofs))
+def assemble(m, neighboors):
+    i = np.concatenate([
+        np.vstack((
+            np.repeat(n, len(n)),
+            np.tile(n, len(n))))
+        for n in neighboors], axis=-1)
 
-    # loop over all elements
-    for n in neighboors:
-        M[n.reshape(3, 1), n.reshape(1, 3)] += m
+    m = np.tile(m.reshape(-1), len(neighboors))
+    return sparse.coo_matrix((m, i)).tocsr()
 
-    return M
 
 def assemble_mass(dx, dy):
     m = dx * dy * np.array([
@@ -125,34 +129,24 @@ def assemble_mass(dx, dy):
     nelems = 2 * (dofs_x - 1) * (dofs_y - 1)
     elems = np.arange(nelems)
 
-    return assemble(m, neighboors_interior(elems, dofs_x), ndofs)
+    return assemble(m, neighboors_interior(elems, dofs_x))
 
 
-def assemble_boundary_mass(dx, dy):
-    # must depend on dy to handle nonunuiform grid
-    m = dx * np.array([
+def assemble_boundary_mass(elems, d):
+    # TODO: must depend on dy to handle nonunuiform grid
+    m = d * np.array([
         [1/3, 1/6],
         [1/6, 1/3],
     ])
 
-    dofs_x = round(1 / dx) + 1
-    dofs_y = round(1 / dy) + 1
-    ndofs = dofs_x * dofs_y
+    dofs = round(1 / d) + 1
 
-    nelems = 4 * (dofs_x - 1)
-    elems = np.arange(nelems)
-
-    M = sparse.csr_matrix((ndofs, ndofs))
-
-    # loop over all elements
-    for n in neighboors_exterior(elems, dofs_x):
-        M[n.reshape(2, 1), n.reshape(1, 2)] += m
-
-    return M
+    return assemble(m, neighboors_exterior(elems, dofs))
 
 
-def assemble_operator(dx, dy):
-    a = np.array([
+
+def assemble_stiffness(dx, dy):
+    a = - np.array([
         [(dx**2 + dy**2) / (2 * dx * dy), - dy / (2 * dx), - dx / (2 * dy)],
         [                - dy / (2 * dx),   dy / (2 * dx),             0.0],
         [                - dx / (2 * dy),             0.0,   dx / (2 * dy)],
@@ -165,7 +159,7 @@ def assemble_operator(dx, dy):
     nelems = 2 * (dofs_x - 1) * (dofs_y - 1)
     elems = np.arange(nelems)
 
-    return assemble(a, neighboors_interior(elems, dofs_x), ndofs)
+    return assemble(a, neighboors_interior(elems, dofs_x))
 
 
 class LaplaceOnUnitSquare:
@@ -173,9 +167,18 @@ class LaplaceOnUnitSquare:
         self.dx = dx
         self.N = round(1 / dx) + 1
 
-        self.A = assemble_operator(dx, dx)
+        self.A = assemble_stiffness(dx, dx)
         self.M = assemble_mass(dx, dx)
-        self.Mb = assemble_boundary_mass(dx, dx)
+        self.Mbx = assemble_boundary_mass(
+            np.concatenate([
+                np.arange(self.N - 1),
+                np.arange(2 * (self.N - 1), 3 * (self.N - 1))]),
+            dx)
+        self.Mby = assemble_boundary_mass(
+            np.concatenate([
+                np.arange(self.N - 1, 2 * (self.N - 1)),
+                np.arange(3 * (self.N - 1), 4 * (self.N - 1))]),
+            dx)
 
         self.ndofs = self.A.shape[0]
         self.dofs = np.arange(self.ndofs, dtype=np.int64)
@@ -188,11 +191,11 @@ class LaplaceOnUnitSquare:
     def boundary(self, e):
         N = round(1 / self.dx) + 1
         if e == 0:
-            return np.arange(1, N - 1)
+            return np.arange(0, N)
         if e == 1:
             return np.arange(0, N) * N + (N - 1)
         if e == 2:
-            return np.arange(N - 2, 0, -1) + N * (N - 1)
+            return np.arange(N - 1, -1, -1) + N * (N - 1)
         if e == 3:
             return np.arange(N - 1, -1, -1) * N
         raise ValueError(f'boundary index must be in (0, 1, 2, 3)')
@@ -207,8 +210,8 @@ class LaplaceOnUnitSquare:
     def set_neumann(self, e, fn):
         boundary = self.boundary(e)
         x, y = coords(boundary, self.dx, self.dx)
-
-        self.rhs += self.Mb[:, boundary] @ fn(x, y)
+        M = self.Mbx if e in (0, 2) else self.Mby
+        self.rhs += M[:, boundary] @ fn(x, y)
 
     def solve(self):
         active_dofs = [i for i in self.dofs if i not in self.boundary_set]
@@ -226,21 +229,24 @@ class LaplaceOnUnitSquare:
         # somewhat inefficient since we evaluate all basis functions in every point
         return np.sum(self.sol * _hatv(xx, yy, self.dx, self.dx), axis=-1)
 
-    def plot(self, k=100):
+    def plot(self, k=100, show=True, **kwargs):
         x, y = np.meshgrid(np.linspace(0, 1, k), np.linspace(0, 1, k))
         z = self.evaluate(x, y)
-        plt.imshow(z, interpolation=None, origin='lower')
+        plt.imshow(z, interpolation=None, origin='lower', **kwargs)
         plt.colorbar()
-        plt.show()
+        if show:
+            plt.show()
 
     def heat_flux(self, x, y, n):
-        ' Warning, heat flux undefined on grid skeleton '
         xc, yc = coords(self.dofs, self.dx, self.dx)
         xx = x[..., np.newaxis] - xc.reshape(*(1 for _ in x.shape), -1)
         yy = y[..., np.newaxis] - yc.reshape(*(1 for _ in y.shape), -1)
 
+        if np.any(xx == 0) or np.any(yy == 0):
+            warnings.warn('Heat flux is undefined on grid skeleton')
+
         # somewhat inefficient since we evaluate all basis functions in every point
-        return np.sum(self.sol * _ghatv(xx, yy, *n, self.dx, self.dx), axis=-1)
+        return - np.sum(self.sol * _ghatv(xx, yy, *n, self.dx, self.dx), axis=-1)
 
 
 def f(x, y):
@@ -249,4 +255,3 @@ def f(x, y):
         np.sin(pi * y**2) * (    pi * np.cos(pi * x**2) -     pi**2 * x**2 * np.sin(pi * x**2)) +
         np.sin(pi * x**2) * (2 * pi * np.cos(pi * y**2) - 4 * pi**2 * y**2 * np.sin(pi * y**2))
     )
-
