@@ -84,6 +84,7 @@ def _neighboors_exterior(i,Nx,Ny,_, n):
     elif i-Nx-Ny < 0:
         border = 1
     elif i- 2*Nx-Ny<0:
+        pass
         
     if border == 0:
         n[0] = i
@@ -221,17 +222,21 @@ class LaplaceOnUnitSquare:
         self.sol[boundary] = fd(x, y)
         self.rhs -= self.A[:, boundary] @ self.sol[boundary]
 
-    def set_neumann(self, e, fn):
+    def set_neumann(self, e, fn, raw=False):
         boundary = self.boundary(e)
-        x, y = coords(boundary, self.dx, self.dx)
-        M = self.Mbx if e in (0, 2) else self.Mby
+        if raw:
+            self.rhs[boundary] += fn
+
+        else:
+            x, y = coords(boundary, self.dx, self.dx)
+            M = self.Mbx if e in (0, 2) else self.Mby
         
-        print(M[:,boundary].shape)
-        print(fn(x,y))
-        print(self.Mbx.shape)
-        print(self.Mby.shape)
+            print(M[:,boundary].shape)
+            print(fn(x,y))
+            print(self.Mbx.shape)
+            print(self.Mby.shape)
         
-        self.rhs += M[:, boundary] @ fn(x, y)
+            self.rhs += M[:, boundary] @ fn(x, y)
 
     def solve(self):
         active_dofs = [i for i in self.dofs if i not in self.boundary_set]
