@@ -1,7 +1,11 @@
+import sys
+sys.path.append('..')
+
 from tikzplotlib import clean_figure, save
 import matplotlib.pyplot as plt
 import numpy as np
-from solution import LaplaceOnUnitSquare, coords
+
+from solver.laplace import LaplaceOnUnitSquare, coords
 
 
 def f(x, y):
@@ -45,5 +49,5 @@ plt.xlabel('$\Delta x$')
 plt.ylabel('$l_2$ error')
 plt.legend()
 clean_figure()
-save('convergence_plot.tex')
-#plt.savefig('convergence_plot.png')
+save('report/convergence_plot.tex')
+plt.savefig('report/convergence_plot.png')
