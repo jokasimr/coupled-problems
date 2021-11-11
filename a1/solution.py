@@ -69,31 +69,45 @@ def neighboors_interior(i, N):
     return _neighboors_interior(i, N, np.ones((1, 3), np.int64))
 
 
-@guvectorize('void(int64[:], int64, int64[:], int64[:])',
-             '(),(),(n)->(n)',
+@guvectorize('void(int64[:], int64, int64, int64[:], int64[:])',
+             '(),(),(),(n)->(n)',
              target='parallel', nopython=True)
-def _neighboors_exterior(i, N, _, n):
+def _neighboors_exterior(i,Nx,Ny,_, n):
     # N = dofs per row
+    print(Nx)
+    print(Ny)
+    print("**********************")
     i = i[0]
-    elems_per_row = (N - 1)
-    border = i // elems_per_row
-
+    elems_per_row = (Nx - 1)
+    if i-Nx<0:
+        border =0
+    elif i-Nx-Ny < 0:
+        border = 1
+    elif i- 2*Nx-Ny<0:
+        
     if border == 0:
         n[0] = i
         n[1] = i + 1
     elif border == 1:
-        n[0] = N * (1 + i - elems_per_row) - 1
-        n[1] = n[0] + N
+        n[0] = Nx * (1 + i - Nx)
+        n[1] = n[0] + Nx
+        print("1")
+        print(i)
+        print(n)
+        print("1")
     elif border == 2:
-        n[0] = (N**2 - 1) - (i - 2 * elems_per_row)
+        n[0] = (Nx*Ny - 1) - (i - 2*Nx-Ny)
         n[1] = n[0] - 1
+        print(n)
+        print("2")
     else:
-        n[0] = N * (N - (i - 3 * elems_per_row) - 1)
-        n[1] = n[0] - N
+        n[0] = Nx * (Ny - (i - 2*(Nx-1)-(Ny-1))-1)
+        n[1] = n[0] - Nx
+        print(n)
 
 
-def neighboors_exterior(i, N):
-    return _neighboors_exterior(i, N, np.ones((1, 2), np.int64))
+def neighboors_exterior(i, Nx,Ny):
+    return _neighboors_exterior(i,Nx,Ny,np.ones((1, 2), np.int64))
 
 
 def coords(indexes, dx, dy):
@@ -101,6 +115,7 @@ def coords(indexes, dx, dy):
     Ny = round(1 / dy) + 1
     x = (indexes % Nx) / (Nx - 1)
     y = (indexes // Ny) / (Ny - 1)
+    print("Does not work properly!!!!")
     return x, y
 
 
@@ -115,16 +130,12 @@ def assemble(m, neighboors):
     return sparse.coo_matrix((m, i)).tocsr()
 
 
-def assemble_mass(dx, dy):
+def assemble_mass(dofs_x,dofs_y,dx, dy):
     m = dx * dy * np.array([
         [1/12, 1/24, 1/24],
         [1/24, 1/12, 1/24],
         [1/24, 1/24, 1/12],
     ])
-
-    dofs_x = round(1 / dx) + 1
-    dofs_y = round(1 / dy) + 1
-    ndofs = dofs_x * dofs_y
 
     nelems = 2 * (dofs_x - 1) * (dofs_y - 1)
     elems = np.arange(nelems)
@@ -132,29 +143,23 @@ def assemble_mass(dx, dy):
     return assemble(m, neighboors_interior(elems, dofs_x))
 
 
-def assemble_boundary_mass(elems, d):
+def assemble_boundary_mass(elems, d,Nx,Ny):
     # TODO: must depend on dy to handle nonunuiform grid
     m = d * np.array([
         [1/3, 1/6],
         [1/6, 1/3],
     ])
 
-    dofs = round(1 / d) + 1
-
-    return assemble(m, neighboors_exterior(elems, dofs))
+    return assemble(m, neighboors_exterior(elems, Nx,Ny))
 
 
 
-def assemble_stiffness(dx, dy):
+def assemble_stiffness( dofs_x,dofs_y,dx,dy):
     a = - np.array([
         [(dx**2 + dy**2) / (2 * dx * dy), - dy / (2 * dx), - dx / (2 * dy)],
         [                - dy / (2 * dx),   dy / (2 * dx),             0.0],
         [                - dx / (2 * dy),             0.0,   dx / (2 * dy)],
     ])
-
-    dofs_x = round(1 / dx) + 1
-    dofs_y = round(1 / dy) + 1
-    ndofs = dofs_x * dofs_y
 
     nelems = 2 * (dofs_x - 1) * (dofs_y - 1)
     elems = np.arange(nelems)
@@ -163,22 +168,24 @@ def assemble_stiffness(dx, dy):
 
 
 class LaplaceOnUnitSquare:
-    def __init__(self, dx, rhs):
+    def __init__(self, dx,x_cord,y_cord, rhs):
         self.dx = dx
-        self.N = round(1 / dx) + 1
-
-        self.A = assemble_stiffness(dx, dx)
-        self.M = assemble_mass(dx, dx)
+        self.Nx = round((x_cord[1]-x_cord[0]) / dx) + 1
+        self.Ny = round((y_cord[1]-y_cord[0]) / dx) + 1
+        
+        self.A = assemble_stiffness(self.Nx,self.Ny,dx, dx)
+        self.M = assemble_mass(self.Nx,self.Ny,dx, dx)
         self.Mbx = assemble_boundary_mass(
             np.concatenate([
-                np.arange(self.N - 1),
-                np.arange(2 * (self.N - 1), 3 * (self.N - 1))]),
-            dx)
+                np.arange(self.Nx - 1),
+                np.arange((self.Nx - 1)+(self.Ny-1), 2 * (self.Nx - 1)+(self.Ny-1))]),
+            dx,self.Nx,self.Ny)
+
         self.Mby = assemble_boundary_mass(
             np.concatenate([
-                np.arange(self.N - 1, 2 * (self.N - 1)),
-                np.arange(3 * (self.N - 1), 4 * (self.N - 1))]),
-            dx)
+                np.arange(self.Nx - 1, (self.Nx - 1)+(self.Ny-1)),
+                np.arange(2 * (self.Nx - 1)+self.Ny-1, 2* (self.Nx - 1) + 2* (self.Ny - 1))]),
+            dx,self.Nx,self.Ny)
 
         self.ndofs = self.A.shape[0]
         self.dofs = np.arange(self.ndofs, dtype=np.int64)
@@ -189,15 +196,16 @@ class LaplaceOnUnitSquare:
         self.rhs = self.M @ rhs(x, y)
 
     def boundary(self, e):
-        N = round(1 / self.dx) + 1
         if e == 0:
-            return np.arange(0, N)
+            return np.arange(0, self.Nx)
         if e == 1:
-            return np.arange(0, N) * N + (N - 1)
+            return np.arange(0, self.Nx) * self.Ny + (self.Nx - 1)
         if e == 2:
-            return np.arange(N - 1, -1, -1) + N * (N - 1)
+            print(np.arange(self.Ny - 1, -1, -1) + self.Ny * (self.Nx - 1))
+            return np.arange(self.Ny - 1, -1, -1) + self.Ny * (self.Nx - 1)
         if e == 3:
-            return np.arange(N - 1, -1, -1) * N
+            print(np.arange(self.Ny - 1, -1, -1) * self.Nx)
+            return np.arange(self.Ny - 1, -1, -1) * self.Nx
         raise ValueError(f'boundary index must be in (0, 1, 2, 3)')
 
     def set_dirchlet(self, e, fd):
@@ -211,6 +219,12 @@ class LaplaceOnUnitSquare:
         boundary = self.boundary(e)
         x, y = coords(boundary, self.dx, self.dx)
         M = self.Mbx if e in (0, 2) else self.Mby
+        
+        print(M[:,boundary].shape)
+        print(fn(x,y))
+        print(self.Mbx.shape)
+        print(self.Mby.shape)
+        
         self.rhs += M[:, boundary] @ fn(x, y)
 
     def solve(self):
