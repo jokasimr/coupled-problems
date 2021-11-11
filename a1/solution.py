@@ -105,12 +105,11 @@ def coords(indexes, dx, dy):
 
 
 def assemble(m, neighboors):
-    i = np.concatenate([
-        np.vstack((
-            np.repeat(n, len(n)),
-            np.tile(n, len(n))))
-        for n in neighboors], axis=-1)
-
+    _, k = neighboors.shape
+    i = np.stack([
+        np.repeat(neighboors, k, axis=1).flatten(),
+        np.tile(neighboors, k).flatten()
+    ])
     m = np.tile(m.reshape(-1), len(neighboors))
     return sparse.coo_matrix((m, i)).tocsr()
 
