@@ -77,33 +77,38 @@ def _neighboors_exterior(i,Nx,Ny,_, n):
     print(Nx)
     print(Ny)
     print("**********************")
+    
     i = i[0]
-    elems_per_row = (Nx - 1)
+
     if i-Nx<0:
         border =0
     elif i-Nx-Ny < 0:
         border = 1
     elif i- 2*Nx-Ny<0:
+        border = 2
+    else:
+        border = 3
         
     if border == 0:
         n[0] = i
         n[1] = i + 1
     elif border == 1:
-        n[0] = Nx * (1 + i - Nx)
-        n[1] = n[0] + Nx
-        print("1")
+        n[0] = Nx * (i - Nx)
+        n[1] = n[0] + Nx-1
+        print("ett")
         print(i)
         print(n)
-        print("1")
+        print("ett")
     elif border == 2:
-        n[0] = (Nx*Ny - 1) - (i - 2*Nx-Ny)
+        n[0] = (Nx*Ny - 1) - (i - Nx-Ny)
         n[1] = n[0] - 1
         print(n)
-        print("2")
+        print("två")
     else:
-        n[0] = Nx * (Ny - (i - 2*(Nx-1)-(Ny-1))-1)
+        n[0] = Nx * (Ny - (i - 2*(Nx)-(Ny-1)))
         n[1] = n[0] - Nx
         print(n)
+        print("tre")
 
 
 def neighboors_exterior(i, Nx,Ny):
@@ -115,7 +120,6 @@ def coords(indexes, dx, dy):
     Ny = round(1 / dy) + 1
     x = (indexes % Nx) / (Nx - 1)
     y = (indexes // Ny) / (Ny - 1)
-    print("Does not work properly!!!!")
     return x, y
 
 
@@ -205,12 +209,10 @@ class LaplaceOnUnitSquare:
         if e == 0:
             return np.arange(0, self.Nx)
         if e == 1:
-            return np.arange(0, self.Nx) * self.Ny + (self.Nx - 1)
+            return np.arange(0, self.Ny-1) * self.Nx + (self.Nx - 1)
         if e == 2:
-            print(np.arange(self.Ny - 1, -1, -1) + self.Ny * (self.Nx - 1))
             return np.arange(self.Ny - 1, -1, -1) + self.Ny * (self.Nx - 1)
         if e == 3:
-            print(np.arange(self.Ny - 1, -1, -1) * self.Nx)
             return np.arange(self.Ny - 1, -1, -1) * self.Nx
         raise ValueError(f'boundary index must be in (0, 1, 2, 3)')
 
@@ -218,6 +220,8 @@ class LaplaceOnUnitSquare:
         boundary = self.boundary(e)
         self.boundary_set = self.boundary_set.union(boundary)
         x, y = coords(boundary, self.dx, self.dx)
+        print(boundary)
+        print(e)
         self.sol[boundary] = fd(x, y)
         self.rhs -= self.A[:, boundary] @ self.sol[boundary]
 
