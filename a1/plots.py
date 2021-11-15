@@ -1,10 +1,10 @@
 from tikzplotlib import clean_figure, save
 import matplotlib.pyplot as plt
 import numpy as np
-from solution import LaplaceOnUnitSquare, coords, f
+from solution import LaplaceOnRectangle, coords, f
 
 
-L = LaplaceOnUnitSquare(0.02, f)
+L = LaplaceOnRectangle(0.02, f)
 
 for i in range(4):
     L.set_dirchlet(i, lambda x, y: x*0)
@@ -19,7 +19,7 @@ save('problem.tex')
 plt.show()
 
 
-L = LaplaceOnUnitSquare(0.02, lambda x, y: x*0)
+L = LaplaceOnRectangle(0.02, lambda x, y: x*0)
 
 for i in (3,):
     L.set_dirchlet(i, lambda x, y: x*0)
@@ -36,7 +36,7 @@ save('linear.tex')
 plt.show()
 
 
-L = LaplaceOnUnitSquare(0.02, lambda x, y: x*0)
+L = LaplaceOnRectangle(0.02, lambda x, y: x*0)
 
 for i in (0,):
     L.set_neumann(i, lambda x, y: x*0 + 1)

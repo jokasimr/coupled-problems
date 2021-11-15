@@ -1,5 +1,5 @@
 import numpy as np
-from laplace import LaplaceOnUnitSquare, coords
+from laplace import LaplaceOnRectangle, coords
 
 
 def convergence_test():
@@ -21,7 +21,7 @@ def convergence_test():
     errors = []
 
     for h in hs:
-        L = LaplaceOnUnitSquare(h, [0, 1], [0, 1], f)
+        L = LaplaceOnRectangle(h, 1, 1, f)
 
         for e in range(4):
             L.set_dirchlet(e, lambda x, y: x*0)
@@ -38,7 +38,7 @@ def convergence_test():
 
 
 def test_zero_boundary_unit_square_no_rhs():
-    L = LaplaceOnUnitSquare(0.1, [0, 1], [0, 1], lambda x, y: 0*x)
+    L = LaplaceOnRectangle(0.1, 1, 1, lambda x, y: 0 * x)
 
     for i in range(4):
         L.set_dirchlet(i, lambda x, y: 0*x)
@@ -48,7 +48,7 @@ def test_zero_boundary_unit_square_no_rhs():
 
 
 def test_nonzero_boundary_unit_square_no_rhs_x():
-    L = LaplaceOnUnitSquare(0.5, [0, 1], [0, 1], lambda x, y: 0*x)
+    L = LaplaceOnRectangle(0.1, 1, 1, lambda x, y: 0 * x)
 
     L.set_dirchlet(3, lambda x, y: 0*x)
     L.set_dirchlet(1, lambda x, y: 0*x + 1)
@@ -61,10 +61,88 @@ def test_nonzero_boundary_unit_square_no_rhs_x():
 
 
 def test_nonzero_boundary_unit_square_no_rhs_y():
-    L = LaplaceOnUnitSquare(0.5, [0, 1], [0, 1], lambda x, y: 0*x)
+    L = LaplaceOnRectangle(0.1, 1, 1, lambda x, y: 0 * x)
 
-    L.set_dirchlet(0, lambda x, y: 0*x)
-    L.set_dirchlet(2, lambda x, y: 0*x + 1)
+    L.set_dirchlet(0, lambda x, y: 0 * x)
+    L.set_dirchlet(2, lambda x, y: 0 * x + 1)
+
+    L.solve()
+
+    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+
+    assert np.allclose(L.sol, y), "Solution should be `y`"
+
+
+def test_neumann_boundary_x():
+    L = LaplaceOnRectangle(0.1, 1, 1, lambda x, y: 0 * x)
+
+    L.set_dirchlet(3, lambda x, y: 0 * x)
+    L.set_neumann(1, lambda x, y: 0 * x + 1)
+
+    L.solve()
+
+    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+
+    assert np.allclose(L.sol, x), "Solution should be `x`"
+
+
+def test_neumann_boundary_y():
+    L = LaplaceOnRectangle(0.1, 1, 1, lambda x, y: 0 * x)
+
+    L.set_dirchlet(0, lambda x, y: 0 * x)
+    L.set_neumann(2, lambda x, y: 0 * x + 1)
+
+    L.solve()
+
+    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+
+    assert np.allclose(L.sol, y), "Solution should be `y`"
+
+
+def test_nonzero_boundary_rectangle_no_rhs_x():
+    L = LaplaceOnRectangle(0.1, 2, 1, lambda x, y: 0 * x)
+
+    L.set_dirchlet(3, lambda x, y: 0 * x)
+    L.set_dirchlet(1, lambda x, y: 0 * x + 2)
+
+    L.solve()
+
+    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+
+    assert np.allclose(L.sol, x), "Solution should be `x`"
+
+
+def test_nonzero_boundary_rectangle_no_rhs_y():
+    L = LaplaceOnRectangle(0.1, 1, 2, lambda x, y: 0 * x)
+
+    L.set_dirchlet(0, lambda x, y: 0 * x)
+    L.set_dirchlet(2, lambda x, y: 0 * x + 2)
+
+    L.solve()
+
+    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+
+    assert np.allclose(L.sol, y), "Solution should be `y`"
+
+
+def test_rectangular_neumann_boundary_x():
+    L = LaplaceOnRectangle(0.1, 2, 1, lambda x, y: 0 * x)
+
+    L.set_dirchlet(3, lambda x, y: 0 * x)
+    L.set_neumann(1, lambda x, y: 0 * x + 1)
+
+    L.solve()
+
+    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+
+    assert np.allclose(L.sol, x), "Solution should be `x`"
+
+
+def test_rectangular_neumann_boundary_y():
+    L = LaplaceOnRectangle(0.1, 2, 1, lambda x, y: 0 * x)
+
+    L.set_dirchlet(0, lambda x, y: 0 * x)
+    L.set_neumann(2, lambda x, y: 0 * x + 1)
 
     L.solve()
 
@@ -72,8 +150,8 @@ def test_nonzero_boundary_unit_square_no_rhs_y():
 
     assert np.allclose(L.sol, y), 'Solution should be `y`'
 
-def test_nonzero_boundary_unit_Rectangle_x_no_rhs_y():
-    L = LaplaceOnUnitSquare(0.5, [0, 2], [0, 1], lambda x, y: 0*x)
+def test_diagonal_neumann():
+    L = LaplaceOnRectangle(0.1, 1, 1, lambda x, y: 0 * x)
 
     L.set_dirchlet(0, lambda x, y: 0*x)
     L.set_dirchlet(2, lambda x, y: 0*x + 1)
@@ -85,8 +163,8 @@ def test_nonzero_boundary_unit_Rectangle_x_no_rhs_y():
 
     assert np.allclose(L.sol, y), 'Solution should be `y`'
 
-def test_nonzero_boundary_unit_Rectangle_y_no_rhs_y():
-    L = LaplaceOnUnitSquare(0.5, [0, 1], [0, 2], lambda x, y: 0*x)
+def test_constant_rhs_x():
+    L = LaplaceOnRectangle(0.1, 1, 1, lambda x, y: 0 * x + 1)
 
     L.set_dirchlet(0, lambda x, y: 0*x)
     L.set_dirchlet(2, lambda x, y: 0*x + 2)
