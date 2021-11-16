@@ -74,9 +74,6 @@ def neighboors_interior(i, N):
              target='parallel', nopython=True)
 def _neighboors_exterior(i,Nx,Ny,_, n):
     # N = dofs per row
-    print(Nx)
-    print(Ny)
-    print("**********************")
     
     i = i[0]
 
@@ -95,20 +92,13 @@ def _neighboors_exterior(i,Nx,Ny,_, n):
     elif border == 1:
         n[0] = Nx * (i - Nx)
         n[1] = n[0] + Nx-1
-        print("ett")
-        print(i)
-        print(n)
-        print("ett")
+
     elif border == 2:
         n[0] = (Nx*Ny - 1) - (i - Nx-Ny)
         n[1] = n[0] - 1
-        print(n)
-        print("två")
     else:
         n[0] = Nx * (Ny - (i - 2*(Nx)-(Ny-1)))
         n[1] = n[0] - Nx
-        print(n)
-        print("tre")
 
 
 def neighboors_exterior(i, Nx,Ny):
@@ -209,7 +199,7 @@ class LaplaceOnUnitSquare:
         if e == 0:
             return np.arange(0, self.Nx)
         if e == 1:
-            return np.arange(0, self.Ny-1) * self.Nx + (self.Nx - 1)
+            return np.arange(0, self.Ny) * self.Nx + (self.Nx - 1)
         if e == 2:
             return np.arange(self.Ny - 1, -1, -1) + self.Ny * (self.Nx - 1)
         if e == 3:
@@ -220,8 +210,6 @@ class LaplaceOnUnitSquare:
         boundary = self.boundary(e)
         self.boundary_set = self.boundary_set.union(boundary)
         x, y = coords(boundary, self.dx, self.dx)
-        print(boundary)
-        print(e)
         self.sol[boundary] = fd(x, y)
         self.rhs -= self.A[:, boundary] @ self.sol[boundary]
 
@@ -233,12 +221,7 @@ class LaplaceOnUnitSquare:
         else:
             x, y = coords(boundary, self.dx, self.dx)
             M = self.Mbx if e in (0, 2) else self.Mby
-        
-            print(M[:,boundary].shape)
-            print(fn(x,y))
-            print(self.Mbx.shape)
-            print(self.Mby.shape)
-        
+                
             self.rhs += M[:, boundary] @ fn(x, y)
 
     def solve(self):

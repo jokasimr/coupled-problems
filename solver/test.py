@@ -48,7 +48,7 @@ def test_zero_boundary_unit_square_no_rhs():
 
 
 def test_nonzero_boundary_unit_square_no_rhs_x():
-    L = LaplaceOnUnitSquare(0.1, [0, 1], [0, 1], lambda x, y: 0*x)
+    L = LaplaceOnUnitSquare(0.5, [0, 1], [0, 1], lambda x, y: 0*x)
 
     L.set_dirchlet(3, lambda x, y: 0*x)
     L.set_dirchlet(1, lambda x, y: 0*x + 1)
@@ -69,5 +69,31 @@ def test_nonzero_boundary_unit_square_no_rhs_y():
     L.solve()
 
     x, y = coords(L.dofs, L.dx, L.dx)
+
+    assert np.allclose(L.sol, y), 'Solution should be `y`'
+
+def test_nonzero_boundary_unit_Rectangle_no_rhs_y():
+    L = LaplaceOnUnitSquare(0.01, [0, 2], [0, 1], lambda x, y: 0*x)
+
+    L.set_dirchlet(0, lambda x, y: 0*x)
+    L.set_dirchlet(2, lambda x, y: 0*x + 1)
+
+    L.solve()
+
+    x, y = coords(L.dofs, L.dx, L.dx/2)
+    y=y*2
+
+    assert np.allclose(L.sol, y), 'Solution should be `y`'
+
+def test_nonzero_boundary_unit_Rectangle_no_rhs_y():
+    L = LaplaceOnUnitSquare(0.01, [0, 1], [0, 2], lambda x, y: 0*x)
+
+    L.set_dirchlet(0, lambda x, y: 0*x)
+    L.set_dirchlet(2, lambda x, y: 0*x + 1)
+
+    L.solve()
+
+    x, y = coords(L.dofs, L.dx, L.dx/2)
+    y = y
 
     assert np.allclose(L.sol, y), 'Solution should be `y`'
