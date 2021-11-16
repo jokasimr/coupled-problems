@@ -105,11 +105,11 @@ def neighboors_exterior(i, Nx,Ny):
     return _neighboors_exterior(i,Nx,Ny,np.ones((1, 2), np.int64))
 
 
-def coords(indexes, dx, dy):
-    Nx = round(1 / dx) + 1
-    Ny = round(1 / dy) + 1
-    x = (indexes % Nx) / (Nx - 1)
-    y = (indexes // Ny) / (Ny - 1)
+def coords(indexes,x,y, dx, dy):
+    Nx = round((x[1] - x[0]) / dx) + 1
+    Ny = round((y[1] - y[0]) / dy) + 1
+    x = (indexes % Nx)*dx
+    y = (indexes // Nx)*dy
     return x, y
 
 
@@ -192,7 +192,7 @@ class LaplaceOnUnitSquare:
         self.sol = np.zeros(self.ndofs)
         self.boundary_set = set()
 
-        x, y = coords(self.dofs, self.dx, self.dx)
+        x, y = coords(self.dofs,[0,1],[0,1], self.dx, self.dx)
         self.rhs = self.M @ f(x, y)
 
     def boundary(self, e):
@@ -201,7 +201,7 @@ class LaplaceOnUnitSquare:
         if e == 1:
             return np.arange(0, self.Ny) * self.Nx + (self.Nx - 1)
         if e == 2:
-            return np.arange(self.Ny - 1, -1, -1) + self.Ny * (self.Nx - 1)
+            return np.arange(self.Nx - 1, -1, -1) + self.Nx * (self.Ny - 1)
         if e == 3:
             return np.arange(self.Ny - 1, -1, -1) * self.Nx
         raise ValueError(f'boundary index must be in (0, 1, 2, 3)')
@@ -209,7 +209,7 @@ class LaplaceOnUnitSquare:
     def set_dirchlet(self, e, fd):
         boundary = self.boundary(e)
         self.boundary_set = self.boundary_set.union(boundary)
-        x, y = coords(boundary, self.dx, self.dx)
+        x, y = coords(boundary,[0,1],[0,1], self.dx, self.dx)
         self.sol[boundary] = fd(x, y)
         self.rhs -= self.A[:, boundary] @ self.sol[boundary]
 
@@ -219,7 +219,7 @@ class LaplaceOnUnitSquare:
             self.rhs[boundary] += fn
 
         else:
-            x, y = coords(boundary, self.dx, self.dx)
+            x, y = coords(boundary,[0,1],[0,1], self.dx, self.dx)
             M = self.Mbx if e in (0, 2) else self.Mby
                 
             self.rhs += M[:, boundary] @ fn(x, y)
@@ -233,7 +233,7 @@ class LaplaceOnUnitSquare:
         return self.sol
 
     def evaluate(self, x, y):
-        xc, yc = coords(self.dofs, self.dx, self.dx)
+        xc, yc = coords(self.dofs,[0,1],[0,1], self.dx, self.dx)
         xx = x[..., np.newaxis] - xc.reshape(*(1 for _ in x.shape), -1)
         yy = y[..., np.newaxis] - yc.reshape(*(1 for _ in y.shape), -1)
 
@@ -249,7 +249,7 @@ class LaplaceOnUnitSquare:
             plt.show()
 
     def heat_flux(self, x, y, n):
-        xc, yc = coords(self.dofs, self.dx, self.dx)
+        xc, yc = coords(self.dofs,[0,1],[0,1], self.dx, self.dx)
         xx = x[..., np.newaxis] - xc.reshape(*(1 for _ in x.shape), -1)
         yy = y[..., np.newaxis] - yc.reshape(*(1 for _ in y.shape), -1)
 
