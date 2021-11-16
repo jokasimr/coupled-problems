@@ -88,7 +88,10 @@ def _neighboors_exterior(i,Nx,Ny,_, n):
         border = 2
     else:
         border = 3
+<<<<<<< HEAD
 
+=======
+>>>>>>> refs/remotes/origin/mergeconflict_laplace
         
     if border == 0:
         n[0] = i
