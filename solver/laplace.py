@@ -161,7 +161,7 @@ def assemble_mass(dofs_per_row, dofs_per_col, dx, dy):
     m = dx * dy * np.array([
         [1 / 12, 1 / 24, 1 / 24],
         [1 / 24, 1 / 12, 1 / 24],
-        [1 / 24, 1 / 24, 1 / 12]]) 
+        [1 / 24, 1 / 24, 1 / 12]])
 
     nelems = 2 * (dofs_per_row - 1) * (dofs_per_col - 1)
     elems = np.arange(nelems)
@@ -188,7 +188,7 @@ def assemble_stiffness(dofs_per_row, dofs_per_col, dx, dy):
     return assemble(a, neighboors_interior(elems, dofs_per_row))
 
 
-class LaplaceOnUnitSquare:
+class LaplaceOnRectangle:
     def __init__(self, dx, width, height, f):
         self.dx = dx
         self.f = f
@@ -250,17 +250,32 @@ class LaplaceOnUnitSquare:
             return np.arange(self.dofs_per_col - 1, -1, -1) * self.dofs_per_row
         raise ValueError(f"boundary index must be in (0, 1, 2, 3)")
 
-    def set_dirchlet(self, e, fd):
-        boundary = self.boundary(e)
+    def set_dirchlet(self, e, fd, raw=False):
+        if hasattr(e, '__iter__'):
+            boundary = e
+        else:
+            boundary = self.boundary(e)
+
         self.boundary_set = self.boundary_set.union(boundary)
-        x, y = coords(boundary, self.width, self.height, self.dx, self.dx)
-        self.sol[boundary] = fd(x, y)
-        self.rhs -= self.A[:, boundary] @ self.sol[boundary]
+
+        if raw:
+            self.sol[boundary] = fd
+            self.rhs -= self.A[:, boundary] @ self.sol[boundary]
+
+        else:
+            x, y = coords(boundary, self.width, self.height, self.dx, self.dx)
+            self.sol[boundary] = fd(x, y)
+            self.rhs -= self.A[:, boundary] @ self.sol[boundary]
 
     def set_neumann(self, e, fn, raw=False):
-        boundary = self.boundary(e)
+        if hasattr(e, '__iter__'):
+            boundary = e
+        else:
+            boundary = self.boundary(e)
+
         if raw:
             self.rhs[boundary] += fn
+
         else:
             x, y = coords(boundary, self.width, self.height, self.dx, self.dx)
             M = self.Mbx if e in (0, 2) else self.Mby
