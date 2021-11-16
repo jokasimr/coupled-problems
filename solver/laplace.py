@@ -312,6 +312,9 @@ class LaplaceOnRectangle:
         if show:
             plt.show()
 
+    def heat_flux_at_nodes(self, i):
+        return self.A[i] @ self.sol
+
     def heat_flux(self, x, y, n):
         xc, yc = coords(self.dofs, self.width, self.height, self.dx, self.dx)
         xx = x[..., np.newaxis] - xc.reshape(*(1 for _ in x.shape), -1)
