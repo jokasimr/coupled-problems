@@ -1,0 +1,131 @@
+\documentclass[12pt,a4paper]{report}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{plotmarks}
+\usetikzlibrary{patterns,shapes.arrows}
+\usepackage{pgfplots}
+
+
+\DeclareMathOperator{\spn}{span}
+
+
+\begin{document}
+\noindent Johannes Kasimir
+	
+
+	
+\section*{P1: Relation between "Jacobi DN" and "Gau\ss-Seidel DN" iterates }
+
+For the regular (GS-) DN iteration on two domains $\Omega_1$ and $\Omega_2$, the iteration is described by the following three equations
+\begin{align}
+\label{gs1}
+\mathbf{A}_{II}^{(1)} \mathbf{u}_I^{(1),k+1} = \mathbf{f}^{(1)}_I - \mathbf{A}_{I\Gamma}^{(1)}\mathbf{u}^k_\Gamma \\
+\label{gs2}
+\mathbf{A}_{II}^{(2)} \mathbf{u}_I^{(2),k+1} = \mathbf{f}^{(2)}_I - \mathbf{A}_{I\Gamma}^{(2)}\mathbf{u}^{k+1}_\Gamma \\
+\label{gs3}
+\mathbf{A}_{\Gamma I}^{(2)} \mathbf{u}_I^{(2),k+1} + \mathbf{A}_{\Gamma \Gamma}^{(2)} \mathbf{u}_\Gamma^{k+1}= \mathbf{f}_\Gamma - \mathbf{A}_{\Gamma I}^{(1)}\mathbf{u}^{(1),k+1}_I - \mathbf{A}_{\Gamma \Gamma}^{(1)} \mathbf{u}_\Gamma^{k}.
+\end{align}
+The sense in which this is GS is that \eqref{gs3} depends on the solution $\mathbf{u}_I^{(1),k+1}$ and $\mathbf{u}_\Gamma^{k}$ to the Dirichlet problem at the same step in the iteration. To make this "Jacobi" we replace $\mathbf{u}_I^{(1),k+1}$ and $\mathbf{u}_\Gamma^{k}$ with the solution $\mathbf{u}_I^{(1),k}$ and $\mathbf{u}_\Gamma^{k-1}$ to the Dirichlet problem from the previous step $k$. Doing this we obtain the system defining the Jacobi-DN iteration below
+\begin{align}
+\label{j1}
+\mathbf{A}_{II}^{(1)} \mathbf{u}_I^{(1),k+1} = \mathbf{f}^{(1)}_I - \mathbf{A}_{I\Gamma}^{(1)}\mathbf{u}^k_\Gamma \\
+\label{j2}
+\mathbf{A}_{II}^{(2)} \mathbf{u}_I^{(2),k+1} = \mathbf{f}^{(2)}_I - \mathbf{A}_{I\Gamma}^{(2)}\mathbf{u}^{k+1}_\Gamma \\
+\label{j3}
+\mathbf{A}_{\Gamma I}^{(2)} \mathbf{u}_I^{(2),k+1} + \mathbf{A}_{\Gamma \Gamma}^{(2)} \mathbf{u}_\Gamma^{k+1}= \mathbf{f}_\Gamma - \mathbf{A}_{\Gamma I}^{(1)}\mathbf{u}^{(1),k}_I - \mathbf{A}_{\Gamma \Gamma}^{(1)} \mathbf{u}_\Gamma^{k-1}.
+\end{align}
+
+The above two equation systems each define a linear iteration on $\mathbf{u}_\Gamma^{k}$. The GS-DN system \eqref{gs1}-\eqref{gs3} gives the iteration
+\begin{align}
+\label{itgs}
+(\mathbf{A}_{\Gamma \Gamma}^{(2)} - \mathbf{A}_{\Gamma I}^{(2)} \mathbf{A}_{II}^{(2)-1} \mathbf{A}_{I\Gamma}^{(2)}) \mathbf{u}_\Gamma^{k+1} = \\
+\nonumber
+ (\mathbf{A}_{\Gamma I}^{(1)}\mathbf{A}_{II}^{(1)-1}\mathbf{A}_{I\Gamma}^{(1)} - \mathbf{A}_{\Gamma \Gamma}^{(1)}) \mathbf{u}_\Gamma^{k} + \mathbf{f}_\Gamma - \mathbf{A}_{\Gamma I}^{(1)}\mathbf{A}_{II}^{(1)-1} \mathbf{f}^{(1)}_I  - \mathbf{A}_{\Gamma I}^{(2)} \mathbf{A}_{II}^{(2)-1}\mathbf{f}^{(2)}_I
+\end{align}
+and the Jacobi-DN system \eqref{j1}-\eqref{j3} gives the iteration
+\begin{align}
+(\mathbf{A}_{\Gamma \Gamma}^{(2)} - \mathbf{A}_{\Gamma I}^{(2)} \mathbf{A}_{II}^{(2)-1} \mathbf{A}_{I\Gamma}^{(2)}) \mathbf{u}_\Gamma^{k+1} = \\
+\nonumber
+(\mathbf{A}_{\Gamma I}^{(1)}\mathbf{A}_{II}^{(1)-1}\mathbf{A}_{I\Gamma}^{(1)} - \mathbf{A}_{\Gamma \Gamma}^{(1)}) \mathbf{u}_\Gamma^{k-1} + \mathbf{f}_\Gamma - \mathbf{A}_{\Gamma I}^{(1)}\mathbf{A}_{II}^{(1)-1} \mathbf{f}^{(1)}_I  - \mathbf{A}_{\Gamma I}^{(2)} \mathbf{A}_{II}^{(2)-1}\mathbf{f}^{(2)}_I.
+\end{align}
+This shows that if GS-DN and Jacobi-DN are applied to the same problem and provided the same $\mathbf{u}_{\Gamma}^0$ then $\mathbf{u}_{\Gamma(Jacobi)}^2 = \mathbf{u}_{\Gamma(Gau\ss-Seidel)}^1$ and so on for all $k$. If the iteration converges then GS-DN converges twice as fast as J-DN.
+
+\section*{P2: Matrix splitting defining DN iteration }
+
+Equations \eqref{gs1}-\eqref{gs3} above gives that
+\begin{equation}
+\mathbf{B} =
+\begin{bmatrix}
+\mathbf{A}_{II}^{(1)} & \mathbf{0} & \mathbf{0} \\
+\mathbf{0} & \mathbf{A}_{II}^{(2)} & \mathbf{A}_{I\Gamma}^{(2)} \\
+\mathbf{A}_{\Gamma I}^{(1)} & \mathbf{A}_{\Gamma I}^{(2)} & \mathbf{A}_{\Gamma \Gamma}^{(2)}´
+\end{bmatrix}.
+\end{equation}
+This again illustrates what is "Gau\ss-Seidel" about the method. But also shows that it is not \textit{the} Gau\ss-Seidel matrix splitting method.
+
+\section*{P3}
+
+Niklas Kotarsky and I worked together on this task.\\
+
+We calculated the stationary heat distribution in the 3 rooms using the finite element solver for the Poisson equation from last week with a few tweaks:
+\begin{itemize}
+	\item support for rectangular domains,
+	\item option to apply boundary conditions in the form of a raw vectors instead of node values,
+	\item ability to extract heat flux in node points (in other words, the vector $\mathbf{A}^{(1)}_{\Gamma I}\mathbf{u}_I + \mathbf{A}^{(1)}_{\Gamma\Gamma}\mathbf{u}_\Gamma$ required for the DN iteration),
+	\item variable heat conductivity $\lambda$.
+\end{itemize}
+
+    Since the finite element method was described last week, and the discrete DN iteration is described in problem 1, we will focus on the issues encountered when solving the 3 room problem.
+    
+    \subsection*{How to interpret the boundary values?}
+    The prescribed boundary value is discontinuous between the wall and the window and the walls and the radiators. This makes the condition impossible to enforce on all boundaries simultaneously since our discretization can only represent continuous functions. We chose to enforce the wall boundary conditions wherever ambiguity arose. This means the corners all have wall boundary conditions. As can be seen in figure \ref{WindowWall} the unknown on the bottom shared by $\Omega_1$ and $\Omega_2$ was also assigned the wall boundary condition.
+    
+    \subsection*{Do we have convergence?}
+    We measured error as $e_k = ||\mathbf{u}_\Gamma^{k} - \mathbf{u}_\Gamma^{last}||_{l_2}$. We can see that after a number of iterations this values reaches the computer epsilon, see figure \ref{fig:convergence}. This shows we have reached the fixed point of the iteration in equation \eqref{itgs} which shows we have found the solution to the monolithic problem.\\
+ 
+	\subsection*{Results}
+	Figure \ref{tempdist} shows the solution to the problem given in task 3. If heat conductivity is 1 in all rooms the optimal relaxation parameter is 0.47 \ref{fig:vary_theta}. Changing the heat conductivity in room 2 to $0.0243$ changes the optimal relaxation parameter to 0.02, which can be seen in figure \ref{fig:vary_theta_other_heat_cond}.  
+	
+	
+	\begin{figure}
+		\centering
+		\input{room}
+		\caption{The temperature of the 3 different rooms.}
+		\label{tempdist}
+	\end{figure}
+	
+	\begin{figure}
+		\centering
+		\input{convergence}
+		\caption{\label{fig:convergence}Example convergence history of the iteration. The error is calculated compared to $u_\Gamma^k$ in the last iteration.}
+	\end{figure}
+	
+	\begin{figure}
+		\centering
+		\include{theta}
+		\caption{The DN iterations convergence rate's dependency of the relaxation parameter $\theta$.}
+		\label{fig:vary_theta}
+	\end{figure}
+	
+	
+	\begin{figure}
+		\centering
+		\include{theta_other_heat_cond}
+		\caption{Changing the problem parameters changes the optimal $\theta$.}
+		\label{fig:vary_theta_other_heat_cond}
+	\end{figure}
+	
+	\begin{figure}
+		\centering
+		\input{closer}
+		\caption{We chose to count the point (1, 0) as part of the wall with a boundary condition of $15^\circ C$ on both $\Omega_1$ and $\Omega_2$.}
+		\label{WindowWall}
+	\end{figure}
+	
+
+	
+\end{document}
