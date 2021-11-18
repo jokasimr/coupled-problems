@@ -5,7 +5,7 @@ from tikzplotlib import clean_figure, save
 import matplotlib.pyplot as plt
 import numpy as np
 
-from solver.laplace import LaplaceOnUnitSquare, coords
+from solver.laplace import LaplaceOnRectangle, coords
 
 
 def f(x, y):
@@ -25,7 +25,7 @@ hs = [1/5, 1/10, 1/20, 1/50]
 errors = []
 
 for h in hs:
-    L = LaplaceOnUnitSquare(h, f)
+    L = LaplaceOnRectangle(h, f)
 
     for e in range(4):
         L.set_dirchlet(e, lambda x, y: x*0)

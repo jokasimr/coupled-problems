@@ -1,0 +1,22 @@
+% This file was created with tikzplotlib v0.9.15.
+\begin{tikzpicture}
+
+\begin{axis}[
+colorbar horizontal,
+colormap/viridis,
+point meta max=40.0000000000002,
+point meta min=4.99999999999999,
+tick align=outside,
+tick pos=left,
+title={Temperature distribution in the room},
+x grid style={white!69.0196078431373!black},
+xmin=0, xmax=3,
+xtick style={color=black},
+y grid style={white!69.0196078431373!black},
+ymin=0, ymax=2,
+ytick style={color=black}
+]
+\addplot graphics [includegraphics cmd=\pgfimage,xmin=0, xmax=3, ymin=0, ymax=2] {room-002.png};
+\end{axis}
+
+\end{tikzpicture}
