@@ -110,7 +110,7 @@ def test_nonzero_boundary_rectangle_no_rhs_x():
 
 
 def test_nonzero_boundary_rectangle_no_rhs_y():
-    L = LaplaceOnUnitSquare(0.1, 1, 2, lambda x, y: 0 * x)
+    L = LaplaceOnRectangle(0.1, 1, 2, lambda x, y: 0 * x)
 
     L.set_dirchlet(0, lambda x, y: 0 * x)
     L.set_dirchlet(2, lambda x, y: 0 * x + 2)
