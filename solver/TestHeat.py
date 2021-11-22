@@ -2,7 +2,7 @@ import numpy as np
 from laplace import LaplaceOnRectangle, coords, HeatEqOnRectangle
 
 
-def convergence_test():
+def convergence():
     def f(x, y):
         pi = np.pi
         return np.sin(pi * y ** 2) * (
@@ -20,7 +20,7 @@ def convergence_test():
 
     for h in hs:
         dt = 0.1
-        u_0 = np.zeros([int(1/hs)+1,int(1/hs)+1])
+        u_0 = np.zeros([(int(1/h)+1)*(int(1/h)+1)])
         L = HeatEqOnRectangle(u_0,dt,h, 1, 1, f)
 
         for e in range(4):
@@ -73,16 +73,16 @@ def test_nonzero_boundary_unit_square_no_rhs_x():
 
 
 def test_nonzero_boundary_unit_square_no_rhs_y():
-    dx = 0.1
-    dt = 0.2
+    dx = 0.5
+    dt = 0.1
     u_0 = np.ones([(int(1/dx)+1)*(int(1/dx)+1)])
-    L = HeatEqOnRectangle(u_0,dt,dx, 1, 1, lambda x, y: 0 * x)
+    L = HeatEqOnRectangle(u_0,dt,dx, 1, 1, lambda x, y: 0 * x,alpha = 10, lamda = 10)
 
     L.set_dirchlet(0, lambda x, y: 0 * x)
     L.set_dirchlet(2, lambda x, y: 0 * x + 1)
 
 
-    for i in range(500):
+    for i in range(5000):
         L.do_euler_step()
         L.update_u_old()
 
@@ -93,12 +93,18 @@ def test_nonzero_boundary_unit_square_no_rhs_y():
 
 
 def test_neumann_boundary_x():
-    L = LaplaceOnRectangle(0.1, 1, 1, lambda x, y: 0 * x)
+
+    dx = 0.1
+    dt = 0.2
+    u_0 = np.ones([(int(1/dx)+1)*(int(1/dx)+1)])
+    L = HeatEqOnRectangle(u_0,dt,dx, 1, 1, lambda x, y: 0 * x)
 
     L.set_dirchlet(3, lambda x, y: 0 * x)
     L.set_neumann(1, lambda x, y: 0 * x + 1)
 
-    L.solve()
+    for i in range(500):
+        L.do_euler_step()
+        L.update_u_old()
 
     x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
 
@@ -135,3 +141,56 @@ def test_nonzero_boundary_rectangle_no_rhs_x():
     x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
 
     assert np.allclose(L.sol, x), "Solution should be `x`"
+
+def test_nonzero_boundary_rectangle_no_rhs_y():
+    dx = 0.2
+    dt = 0.1
+    u_0 = np.ones([(int(2/dx)+1)*(int(1/dx)+1)])*4
+    L = HeatEqOnRectangle(u_0,dt,dx, 1, 2, lambda x, y: 0 * x)
+
+    L.set_dirchlet(0, lambda x, y: 0 * x)
+    L.set_dirchlet(2, lambda x, y: 0 * x + 2)
+
+    for i in range(500):
+        L.do_euler_step()
+        L.update_u_old()
+
+
+    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+
+    assert np.allclose(L.sol, y), "Solution should be `y`"
+
+
+
+def nonzero_boundary_rectangle_no_rhs_x():
+    dx = 0.05
+    dt = 0.001
+    u_0 = []
+    
+
+    u_0_x = np.sin(np.linspace(0,1,1/dx+1)*np.pi)
+    u_0_y = np.sin(np.linspace(0,1,1/dx+1)*np.pi)
+    
+    for i in range(len(u_0_y)): 
+        u_0.append(u_0_y[i]*u_0_x)
+    u_0 = np.concatenate(u_0)*100
+
+    L = HeatEqOnRectangle(u_0,dt,dx, 1, 1, lambda x, y: 0 * x)
+
+    L.set_dirchlet(3, lambda x, y: 0 * x)
+    L.set_dirchlet(2, lambda x, y: 0 * x)
+    L.set_dirchlet(0, lambda x, y: 0 * x)
+    L.set_dirchlet(1, lambda x, y: 0 * x )
+
+    for i in range(1000):
+        L.do_euler_step()
+        L.update_u_old()
+    
+    def u(x, y):
+        pi = np.pi
+        return 100*np.exp(-(np.pi)**2 - (np.pi)**2)*np.sin(pi * x) * np.sin(pi * y)
+
+    
+    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    
+    assert np.allclose(L.sol,u(x,y)), "Solution should be `decay with e^(-kt)`"

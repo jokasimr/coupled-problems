@@ -338,12 +338,29 @@ def f(x, y):
 
 class HeatEqOnRectangle(LaplaceOnRectangle):
 
-    def __init__(self, u_0, dt, dx, width, height, f, alpha=1.0):
-        LaplaceOnRectangle.__init__(self,dx, width, height, f, alpha=1.0)
+    def __init__(self, u_0, dt, dx, width, height, f, alpha=1.0, lamda = 1.0):
+        LaplaceOnRectangle.__init__(self,dx, width, height, f, alpha=lamda)
         self.dt = dt
+        self.lamda = lamda
         self.u_old = u_0
         self.sol = u_0
-        self.A_hat = self.M+dt*self.A
+        self.al = alpha
+        self.A_hat = alpha*self.M+dt*self.A
+
+    def set_neumann(self, e, fn, raw=False):
+        if hasattr(e, '__iter__'):
+            boundary = e
+        else:
+            boundary = self.boundary(e)
+
+        if raw:
+            self.rhs[boundary] += fn
+
+        else:
+            x, y = coords(boundary, self.width, self.height, self.dx, self.dx)
+            M = self.Mbx if e in (0, 2) else self.Mby
+            self.rhs += self.dt*self.al * M[:, boundary] @ fn(x, y)
+
 
     def set_dirchlet(self, e, fd, raw=False):
         if hasattr(e, '__iter__'):
@@ -355,12 +372,12 @@ class HeatEqOnRectangle(LaplaceOnRectangle):
 
         if raw:
             self.sol[boundary] = fd
-            self.rhs -= self.dt*self.A[:, boundary] @ self.sol[boundary]
+            self.rhs += self.al * self.M[:, boundary] @ self.u_old[boundary] - self.A_hat[:, boundary] @ self.sol[boundary]
 
         else:
             x, y = coords(boundary, self.width, self.height, self.dx, self.dx)
             self.sol[boundary] = fd(x, y)
-            self.rhs += self.M[:, boundary] @ self.u_old[boundary] - self.A_hat[:, boundary] @ self.sol[boundary]
+            self.rhs += self.al*self.M[:, boundary] @ self.u_old[boundary] - self.A_hat[:, boundary] @ self.sol[boundary]
 
 
     def do_euler_step(self):
@@ -374,7 +391,7 @@ class HeatEqOnRectangle(LaplaceOnRectangle):
     
     def heat_flux_at_nodes(self,i):
 
-        return self.A_hat[i] @ self.u_new - self.M[i] @ self.u_old
+        return self.dx*(-self.A_hat[i] @ self.sol + self.al * self.M[i] @ self.u_old)
 
     def update_u_old(self):
         self.u_old = self.sol
