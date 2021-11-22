@@ -73,10 +73,10 @@ def test_nonzero_boundary_unit_square_no_rhs_x():
 
 
 def test_nonzero_boundary_unit_square_no_rhs_y():
-    dx = 0.5
+    dx = 0.2
     dt = 0.1
     u_0 = np.ones([(int(1/dx)+1)*(int(1/dx)+1)])
-    L = HeatEqOnRectangle(u_0,dt,dx, 1, 1, lambda x, y: 0 * x,alpha = 10, lamda = 10)
+    L = HeatEqOnRectangle(u_0,dt,dx, 1, 1, lambda x, y: 0 * x,heat_capacitance = 10, heat_conductivity = 10)
 
     L.set_dirchlet(0, lambda x, y: 0 * x)
     L.set_dirchlet(2, lambda x, y: 0 * x + 1)
@@ -93,7 +93,6 @@ def test_nonzero_boundary_unit_square_no_rhs_y():
 
 
 def test_neumann_boundary_x():
-
     dx = 0.1
     dt = 0.2
     u_0 = np.ones([(int(1/dx)+1)*(int(1/dx)+1)])
@@ -142,6 +141,7 @@ def test_nonzero_boundary_rectangle_no_rhs_x():
 
     assert np.allclose(L.sol, x), "Solution should be `x`"
 
+
 def test_nonzero_boundary_rectangle_no_rhs_y():
     dx = 0.2
     dt = 0.1
@@ -159,7 +159,6 @@ def test_nonzero_boundary_rectangle_no_rhs_y():
     x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
 
     assert np.allclose(L.sol, y), "Solution should be `y`"
-
 
 
 def nonzero_boundary_rectangle_no_rhs_x():
