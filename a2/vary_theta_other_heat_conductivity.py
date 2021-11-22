@@ -12,7 +12,7 @@ from solver.laplace import LaplaceOnRectangle, coords
 h = 0.02
 
 left = LaplaceOnRectangle(h, 1, 1, lambda x, y: x*0)
-middle = LaplaceOnRectangle(h, 1, 2, lambda x, y: x*0, alpha=0.0243)
+middle = LaplaceOnRectangle(h, 1, 2, lambda x, y: x*0, heat_conductivity=0.0243)
 right = LaplaceOnRectangle(h, 1, 1, lambda x, y: x*0)
 
 

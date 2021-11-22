@@ -189,9 +189,9 @@ def assemble_stiffness(dofs_per_row, dofs_per_col, dx, dy):
 
 
 class LaplaceOnRectangle:
-    def __init__(self, dx, width, height, f, alpha=1.0):
+    def __init__(self, dx, width, height, f, heat_conductivity=1.0):
         self.dx = dx
-        self.alpha = alpha
+        self.lamda = heat_conductivity
         self.f = f
         assert width / dx == round(width / dx), "`width` must be evenly divisible by `dx`"
         assert height / dx == round(height / dx), "`height` must be evenly divisible by `dx`"
@@ -200,7 +200,7 @@ class LaplaceOnRectangle:
         self.width = width
         self.height = height
 
-        self.A = alpha * assemble_stiffness(self.dofs_per_row, self.dofs_per_col, dx, dx)
+        self.A = self.lamda * assemble_stiffness(self.dofs_per_row, self.dofs_per_col, dx, dx)
         self.M = assemble_mass(self.dofs_per_row, self.dofs_per_col, dx, dx)
 
         elems_per_row = self.dofs_per_row - 1
@@ -280,7 +280,7 @@ class LaplaceOnRectangle:
         else:
             x, y = coords(boundary, self.width, self.height, self.dx, self.dx)
             M = self.Mbx if e in (0, 2) else self.Mby
-            self.rhs += self.alpha * M[:, boundary] @ fn(x, y)
+            self.rhs += self.lamda * M[:, boundary] @ fn(x, y)
 
     def solve(self):
         active_dofs = [i for i in self.dofs if i not in self.boundary_set]
