@@ -334,3 +334,48 @@ def f(x, y):
         np.sin(pi * y ** 2) * (pi * np.cos(pi * x ** 2) - pi ** 2 * x ** 2 * np.sin(pi * x ** 2))
       + np.sin(pi * x ** 2) * (2 * pi * np.cos(pi * y ** 2) - 4 * pi ** 2 * y ** 2 * np.sin(pi * y ** 2))
     )
+
+
+class HeatEqOnRectangle(LaplaceOnRectangle):
+
+    def __init__(self, u_0, dt, dx, width, height, f, alpha=1.0):
+        LaplaceOnRectangle.__init__(self,dx, width, height, f, alpha=1.0)
+        self.dt = dt
+        self.u_old = u_0
+        self.sol = u_0
+        self.A_hat = self.M+dt*self.A
+
+    def set_dirchlet(self, e, fd, raw=False):
+        if hasattr(e, '__iter__'):
+            boundary = e
+        else:
+            boundary = self.boundary(e)
+
+        self.boundary_set = self.boundary_set.union(boundary)
+
+        if raw:
+            self.sol[boundary] = fd
+            self.rhs -= self.dt*self.A[:, boundary] @ self.sol[boundary]
+
+        else:
+            x, y = coords(boundary, self.width, self.height, self.dx, self.dx)
+            self.sol[boundary] = fd(x, y)
+            self.rhs += self.M[:, boundary] @ self.u_old[boundary] - self.A_hat[:, boundary] @ self.sol[boundary]
+
+
+    def do_euler_step(self):
+
+        active_dofs = [i for i in self.dofs if i not in self.boundary_set]
+        rhs = self.rhs[active_dofs]+self.M[active_dofs, :][:, active_dofs] @ self.u_old[active_dofs]
+        
+        self.sol[active_dofs] = spsolve( self.A_hat[active_dofs, :][:, active_dofs], rhs)
+
+        return self.sol
+    
+    def heat_flux_at_nodes(self,i):
+
+        return self.A_hat[i] @ self.u_new - self.M[i] @ self.u_old
+
+    def update_u_old(self):
+        self.u_old = self.sol
+    
