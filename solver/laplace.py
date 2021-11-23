@@ -166,14 +166,6 @@ class LaplaceOnRectangle:
         return -np.sum(self.sol * _ghatv(xx, yy, *n, self.dx, self.dx), axis=-1)
 
 
-def f(x, y):
-    pi = np.pi
-    return (
-        np.sin(pi * y ** 2) * (pi * np.cos(pi * x ** 2) - pi ** 2 * x ** 2 * np.sin(pi * x ** 2))
-      + np.sin(pi * x ** 2) * (2 * pi * np.cos(pi * y ** 2) - 4 * pi ** 2 * y ** 2 * np.sin(pi * y ** 2))
-    )
-
-
 class HeatEqOnRectangle(LaplaceOnRectangle):
 
     def __init__(self, u_0, dt, dx, width, height, f, heat_conductivity=1.0, heat_capacitance=1.0):

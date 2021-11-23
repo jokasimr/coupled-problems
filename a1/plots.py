@@ -1,10 +1,17 @@
 from tikzplotlib import clean_figure, save
 import matplotlib.pyplot as plt
 import numpy as np
-from solution import LaplaceOnRectangle, coords, f
+from solution import LaplaceOnRectangle
 
 
-L = LaplaceOnRectangle(0.02, f)
+def f(x, y):
+    pi = np.pi
+    return (
+        np.sin(pi * y ** 2) * (pi * np.cos(pi * x ** 2) - pi ** 2 * x ** 2 * np.sin(pi * x ** 2))
+      + np.sin(pi * x ** 2) * (2 * pi * np.cos(pi * y ** 2) - 4 * pi ** 2 * y ** 2 * np.sin(pi * y ** 2))
+    )
+
+L = LaplaceOnRectangle(0.02, 1, 1, f)
 
 for i in range(4):
     L.set_dirchlet(i, lambda x, y: x*0)
@@ -19,7 +26,7 @@ save('problem.tex')
 plt.show()
 
 
-L = LaplaceOnRectangle(0.02, lambda x, y: x*0)
+L = LaplaceOnRectangle(0.02, 1, 1, lambda x, y: x*0)
 
 for i in (3,):
     L.set_dirchlet(i, lambda x, y: x*0)
@@ -36,7 +43,7 @@ save('linear.tex')
 plt.show()
 
 
-L = LaplaceOnRectangle(0.02, lambda x, y: x*0)
+L = LaplaceOnRectangle(0.02, 1, 1, lambda x, y: x*0)
 
 for i in (0,):
     L.set_neumann(i, lambda x, y: x*0 + 1)
@@ -52,9 +59,3 @@ clean_figure()
 save('neumann.tex')
 
 plt.show()
-
-
-
-
-
-
