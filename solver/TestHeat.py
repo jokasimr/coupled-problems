@@ -1,5 +1,5 @@
 import numpy as np
-from laplace import LaplaceOnRectangle, coords, HeatEqOnRectangle
+from laplace import LaplaceOnRectangle, HeatEqOnRectangle
 
 
 def convergence():
@@ -30,7 +30,7 @@ def convergence():
             L.do_euler_step()
             L.update_u_old()
 
-        x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+        x, y = L.geometry.coords(L.geometry.dofs)
 
         errors.append(np.sqrt(h ** 2 * np.sum((L.sol - u(x, y)) ** 2)))
 
@@ -67,7 +67,7 @@ def test_nonzero_boundary_unit_square_no_rhs_x():
         L.do_euler_step()
         L.update_u_old()
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(L.sol, x), "Solution should be `x`"
 
@@ -87,7 +87,7 @@ def test_nonzero_boundary_unit_square_no_rhs_y():
         L.update_u_old()
 
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(L.sol, y), "Solution should be `y`"
 
@@ -105,7 +105,7 @@ def test_neumann_boundary_x():
         L.do_euler_step()
         L.update_u_old()
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(L.sol, x), "Solution should be `x`"
 
@@ -118,7 +118,7 @@ def test_neumann_boundary_y():
 
     L.solve()
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(L.sol, y), "Solution should be `y`"
 
@@ -137,7 +137,7 @@ def test_nonzero_boundary_rectangle_no_rhs_x():
         L.update_u_old()
 
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(L.sol, x), "Solution should be `x`"
 
@@ -156,7 +156,7 @@ def test_nonzero_boundary_rectangle_no_rhs_y():
         L.update_u_old()
 
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(L.sol, y), "Solution should be `y`"
 
@@ -190,6 +190,6 @@ def nonzero_boundary_rectangle_no_rhs_x():
         return 100*np.exp(-(np.pi)**2 - (np.pi)**2)*np.sin(pi * x) * np.sin(pi * y)
 
     
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
     
     assert np.allclose(L.sol,u(x,y)), "Solution should be `decay with e^(-kt)`"
