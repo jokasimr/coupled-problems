@@ -6,7 +6,7 @@ from tikzplotlib import clean_figure, save
 import matplotlib.pyplot as plt
 import numpy as np
 
-from solver.laplace import LaplaceOnRectangle, coords
+from solver.laplace import LaplaceOnRectangle
 
 
 h = 0.02
@@ -21,18 +21,18 @@ def reset():
     middle.reset()
     right.reset()
 
-    left_heater = left.boundary(3)[1:-1]
+    left_heater = left.geometry.boundary_dofs(3)[1:-1]
 
     left.set_dirchlet(0, lambda x, y: x*0 + 15)
     left.set_dirchlet(left_heater, lambda x, y: x*0 + 40)
     left.set_dirchlet(2, lambda x, y: x*0 + 15)
 
-    middle_window = middle.boundary(0)[1:-1]
-    middle_right_wall = middle.boundary(1)
-    middle_left_wall = middle.boundary(3)
+    middle_window = middle.geometry.boundary_dofs(0)[1:-1]
+    middle_right_wall = middle.geometry.boundary_dofs(1)
+    middle_left_wall = middle.geometry.boundary_dofs(3)
     middle_wall = np.concatenate([
-        np.array([middle.boundary(0)[0]]),
-        middle.boundary(2),
+        np.array([middle.geometry.boundary_dofs(0)[0]]),
+        middle.geometry.boundary_dofs(2),
         middle_right_wall[:len(middle_right_wall) // 2 + 1],
         middle_left_wall[:len(middle_left_wall) // 2 + 1],
     ])
@@ -40,20 +40,20 @@ def reset():
     middle.set_dirchlet(middle_window, lambda x, y: x*0 + 5)
     middle.set_dirchlet(middle_wall, lambda x, y: x*0 + 15)
 
-    right_heater = right.boundary(1)[1:-1]
+    right_heater = right.geometry.boundary_dofs(1)[1:-1]
     right.set_dirchlet(0, lambda x, y: x*0 + 15)
     right.set_dirchlet(right_heater, lambda x, y: x*0 + 40)
     right.set_dirchlet(2, lambda x, y: x*0 + 15)
 
 
 # left left
-ll_interface = left.boundary(1)[1:-1][::-1]
+ll_interface = left.geometry.boundary_dofs(1)[1:-1][::-1]
 # left middle
-lm_interface = middle.boundary(3)[len(middle.boundary(3)) // 2 + 1:-1]
+lm_interface = middle.geometry.boundary_dofs(3)[len(middle.geometry.boundary_dofs(3)) // 2 + 1:-1]
 # right middle
-rm_interface = middle.boundary(1)[len(middle.boundary(1)) // 2 + 1:-1]
+rm_interface = middle.geometry.boundary_dofs(1)[len(middle.geometry.boundary_dofs(1)) // 2 + 1:-1]
 # right rigth
-rr_interface = right.boundary(3)[1:-1][::-1]
+rr_interface = right.geometry.boundary_dofs(3)[1:-1][::-1]
 
 
 u_gamma_left = 15 * np.ones(len(ll_interface))

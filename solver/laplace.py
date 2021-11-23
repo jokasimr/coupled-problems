@@ -5,8 +5,8 @@ import numpy as np
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
 
-from geometry import Rectangle
-from basis_functions import _hatv, _ghatv
+from .geometry import Rectangle
+from .basis_functions import _hatv, _ghatv
 
 
 def assemble(m, neighboors):
@@ -164,14 +164,6 @@ class LaplaceOnRectangle:
 
         # somewhat inefficient since we evaluate all basis functions in every point
         return -np.sum(self.sol * _ghatv(xx, yy, *n, self.dx, self.dx), axis=-1)
-
-
-def f(x, y):
-    pi = np.pi
-    return (
-        np.sin(pi * y ** 2) * (pi * np.cos(pi * x ** 2) - pi ** 2 * x ** 2 * np.sin(pi * x ** 2))
-      + np.sin(pi * x ** 2) * (2 * pi * np.cos(pi * y ** 2) - 4 * pi ** 2 * y ** 2 * np.sin(pi * y ** 2))
-    )
 
 
 class HeatEqOnRectangle(LaplaceOnRectangle):
