@@ -1,8 +1,8 @@
 import numpy as np
-from laplace import LaplaceOnRectangle, coords
+from laplace import LaplaceOnRectangle
 
 
-def convergence_test():
+def test_convergence():
     def f(x, y):
         pi = np.pi
         return np.sin(pi * y ** 2) * (
@@ -26,7 +26,7 @@ def convergence_test():
 
         L.solve()
 
-        x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+        x, y = L.geometry.coords(L.geometry.dofs)
 
         errors.append(np.sqrt(h ** 2 * np.sum((L.sol - u(x, y)) ** 2)))
 
@@ -52,7 +52,7 @@ def test_nonzero_boundary_unit_square_no_rhs_x():
 
     L.solve()
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(L.sol, x), "Solution should be `x`"
 
@@ -65,7 +65,7 @@ def test_nonzero_boundary_unit_square_no_rhs_y():
 
     L.solve()
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(L.sol, y), "Solution should be `y`"
 
@@ -78,7 +78,7 @@ def test_neumann_boundary_x():
 
     L.solve()
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(L.sol, x), "Solution should be `x`"
 
@@ -91,7 +91,7 @@ def test_neumann_boundary_y():
 
     L.solve()
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(L.sol, y), "Solution should be `y`"
 
@@ -104,7 +104,7 @@ def test_nonzero_boundary_rectangle_no_rhs_x():
 
     L.solve()
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(L.sol, x), "Solution should be `x`"
 
@@ -117,7 +117,7 @@ def test_nonzero_boundary_rectangle_no_rhs_y():
 
     L.solve()
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(L.sol, y), "Solution should be `y`"
 
@@ -132,7 +132,7 @@ def test_constant_boundary_rectangle_no_rhs():
 
     L.solve()
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(L.sol, 15), "Solution should be `15`"
 
@@ -145,7 +145,7 @@ def test_rectangular_neumann_boundary_x():
 
     L.solve()
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(L.sol, x), "Solution should be `x`"
 
@@ -158,7 +158,7 @@ def test_rectangular_neumann_boundary_y():
 
     L.solve()
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(L.sol, y), "Solution should be `y`"
 
@@ -173,7 +173,7 @@ def test_diagonal_neumann():
 
     L.solve()
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(L.sol, x + y), "Solution should be `x + y`"
 
@@ -186,8 +186,23 @@ def test_constant_rhs_x():
 
     L.solve()
 
-    x, y = coords(L.dofs, L.width, L.height, L.dx, L.dx)
+    x, y = L.geometry.coords(L.geometry.dofs)
 
     assert np.allclose(
         L.sol, x * (1 - x) / 2
     ), "Solution should be upside down parabola"
+
+
+def test_adjustable_heat_conductivity():
+    L = LaplaceOnRectangle(0.1, 1, 1, lambda x, y: 0 * x + 1, heat_conductivity=0.1)
+
+    L.set_dirchlet(3, lambda x, y: 0 * x)
+    L.set_dirchlet(1, lambda x, y: 0 * x)
+
+    L.solve()
+
+    x, y = L.geometry.coords(L.geometry.dofs)
+
+    assert np.allclose(
+        L.sol, 1 / 0.1 * x * (1 - x) / 2
+    ), "Solution should be upside down parabola, scaled by 1/heat_conductivity"
