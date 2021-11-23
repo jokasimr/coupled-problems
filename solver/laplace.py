@@ -5,8 +5,8 @@ import numpy as np
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
 
-from geometry import Rectangle
-from basis_functions import _hatv, _ghatv
+from .geometry import Rectangle
+from .basis_functions import _hatv, _ghatv
 
 
 def assemble(m, neighboors):

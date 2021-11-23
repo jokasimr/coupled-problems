@@ -1,5 +1,5 @@
 import numpy as np
-from laplace import LaplaceOnRectangle
+from .laplace import LaplaceOnRectangle
 
 
 def test_convergence():
