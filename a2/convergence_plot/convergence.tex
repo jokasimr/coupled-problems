@@ -1,0 +1,46 @@
+% This file was created with tikzplotlib v0.9.15.
+\begin{tikzpicture}
+
+\definecolor{color0}{rgb}{0.12156862745098,0.466666666666667,0.705882352941177}
+
+\begin{axis}[
+log basis y={10},
+tick align=outside,
+tick pos=left,
+title={Convergence history for \(\displaystyle \theta=0.47\)},
+x grid style={white!69.0196078431373!black},
+xlabel={iteration},
+xmin=-1, xmax=21,
+xtick style={color=black},
+y grid style={white!69.0196078431373!black},
+ylabel={\(\displaystyle ||u_\Gamma||\)},
+ymin=5.05106520789818e-15, ymax=79.606009556297,
+ymode=log,
+ytick style={color=black}
+]
+\addplot [semithick, color0, dashed, mark=*, mark size=3, mark options={solid}]
+table {%
+0 14.611439704895
+1 0.833687126636505
+2 0.0534031912684441
+3 0.00352828809991479
+4 0.000295949837891385
+5 3.15005527227186e-05
+6 3.68922428606311e-06
+7 4.55424867595866e-07
+8 5.61464652548693e-08
+9 6.97394009208097e-09
+10 8.64427307512017e-10
+11 1.07227185464076e-10
+12 1.34170469873185e-11
+13 1.67806469674597e-12
+14 2.62396305855325e-13
+15 8.97543215964969e-14
+16 2.75192263182907e-14
+17 4.44444590993413e-14
+18 2.90259014198123e-14
+19 5.2695220691297e-14
+};
+\end{axis}
+
+\end{tikzpicture}
