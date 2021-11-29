@@ -2,20 +2,11 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 
-from scipy import sparse
 from scipy.sparse.linalg import spsolve
 
+from .assemble import assemble
 from .geometry import Rectangle
 from .basis_functions import _hatv, _ghatv
-
-
-def assemble(m, neighboors):
-    _, k = neighboors.shape
-    i = np.stack(
-        [np.repeat(neighboors, k, axis=1).flatten(), np.tile(neighboors, k).flatten()]
-    )
-    m = np.tile(m.reshape(-1), len(neighboors))
-    return sparse.coo_matrix((m, i)).tocsr()
 
 
 def assemble_mass(geometry):
@@ -127,32 +118,33 @@ class LaplaceOnRectangle:
         )
         return self.sol
 
+    def heat_flux_at_nodes(self, i):
+        return self.A[i, :] @ self.sol
+
     def evaluate(self, x, y):
         xc, yc = self.geometry.coords(self.geometry.dofs)
         xx = x[..., np.newaxis] - xc.reshape(*(1 for _ in x.shape), -1)
         yy = y[..., np.newaxis] - yc.reshape(*(1 for _ in y.shape), -1)
 
         # somewhat inefficient since we evaluate all basis functions in every point
-        return np.sum(self.sol * _hatv(xx, yy, self.dx, self.dx), axis=-1)
+        return np.sum(self.sol * _hatv(xx, yy, self.geometry.dx, self.geometry.dy), axis=-1)
 
     def plot(self, k=100, show=True, **kwargs):
         x, y = np.meshgrid(
-            np.linspace(0, self.width, k), np.linspace(0, self.height, k)
+            np.linspace(0, self.geometry.width, k),
+            np.linspace(0, self.geometry.height, k)
         )
         z = self.evaluate(x, y)
         plt.imshow(
             z,
             interpolation=None,
             origin="lower",
-            extent=[0, self.width, 0, self.height],
+            extent=[0, self.geometry.width, 0, self.geometry.height],
             **kwargs,
         )
         plt.colorbar()
         if show:
             plt.show()
-
-    def heat_flux_at_nodes(self, i):
-        return self.A[i] @ self.sol
 
     def heat_flux(self, x, y, n):
         xc, yc = self.geometry.coords(self.geometry.dofs)
@@ -163,7 +155,7 @@ class LaplaceOnRectangle:
             warnings.warn("Heat flux is undefined on grid skeleton")
 
         # somewhat inefficient since we evaluate all basis functions in every point
-        return -np.sum(self.sol * _ghatv(xx, yy, *n, self.dx, self.dx), axis=-1)
+        return -np.sum(self.sol * _ghatv(xx, yy, *n, self.geometry.dx, self.geometry.dy), axis=-1)
 
 
 class HeatEqOnRectangle(LaplaceOnRectangle):
