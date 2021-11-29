@@ -2,20 +2,11 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 
-from scipy import sparse
 from scipy.sparse.linalg import spsolve
 
+from .assemble import assemble
 from .geometry import Rectangle
 from .basis_functions import _hatv, _ghatv
-
-
-def assemble(m, neighboors):
-    _, k = neighboors.shape
-    i = np.stack(
-        [np.repeat(neighboors, k, axis=1).flatten(), np.tile(neighboors, k).flatten()]
-    )
-    m = np.tile(m.reshape(-1), len(neighboors))
-    return sparse.coo_matrix((m, i)).tocsr()
 
 
 def assemble_mass(geometry):
