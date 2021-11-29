@@ -46,7 +46,7 @@ class FVM():
 
     def __init__(self,x,nbr_cells,xbmove):
         self.nbr_cells = nbr_cells
-        self.vol_i = (x[0]-x[1])/nbr_cells
+        self.vol_i = (x[1]-x[0])/nbr_cells
         self.v_edge = np.zeros([nbr_cells+1])
         self.xbmove = xbmove
         self.sol = []
@@ -56,41 +56,62 @@ class FVM():
     
     def solve(self,t_start,t_end,dt,w_0):
         
-        
-        self.sol.append(w_0)
+        self.sol.append(self.vol_i*w_0)
         self.w = self.vol_i*w_0
 
         while t_start <= t_end:
+            self.w_next = self.w*self.vol_i
 
-            dxb = self.xbmove(t_start) - self.xbmove(t_start+dt)
-            self.vol_i += dxb
-            self.v_edge = dxb/dt/(self.nbr_cells+1)*self.linspace(0,self.nbr_cells+1,self.nbr_cells+1)
+            #dxb = self.xbmove(t_start) - self.xbmove(t_start+dt)
+            dxb = self.xbmove(t_start)*dt
+            self.vol_i += dxb/nbr_cells
+            self.v_edge = self.xbmove(t_start)/(self.nbr_cells+1)*np.linspace(0,self.nbr_cells+1,self.nbr_cells+1)
 
             for i in range(self.nbr_cells+1):
                 
                 if i == self.nbr_cells:
-                    self.w[i-1,:] -= dt*flux(self.w[i-1],self.v_edge[i])
+                    print("Fishy stuff")
+                    print(self.w_next[i-1,:])
+                    w_ghost = self.w[i-1,:]
+                    w_ghost[1] = -w_ghost[1] + w_ghost[0]*self.v_edge[i]
+                    self.w_next[i-1,:] -= dt*flux(self.w[i-1],w_ghost,self.v_edge[i],1)
+                    print("2")
+                    print(w_ghost)
+                    print(flux(self.w[i-1],w_ghost,self.v_edge[i],1))
+                    print(self.w_next[i-1,:])
                 elif i == 0:
-                    self.w[i,:] += dt*flux(self.w[i],self.v_edge[i])
-                else:
-                    self.w[i,:] += dt*flux(self.w[i],self.v_edge[i])
-                    self.w[i-1,:] -= dt*flux(self.w[i-1],self.v_edge[i])
-                
+                    w_ghost = self.w[i,:]
+                    w_ghost[1] = -w_ghost[1]
+                    self.w_next[i,:] += dt*flux(w_ghost,self.w[i],self.v_edge[i],1)
 
+                else:
+                    self.w_next[i,:] += dt*flux(self.w[i-1],self.w[i],self.v_edge[i],1)
+                    self.w_next[i-1,:] -= dt*flux(self.w[i-1],self.w[i],self.v_edge[i],1)
+            
+            self.w = self.w_next/self.vol_i
             t_start += dt
-            self.sol.append(self.w/self.vol_i)
+            self.sol.append(self.w)
 
         return self.sol
 
-if __name__ == 'main':
-    nbr_cells = 10
-    dt = 0.1
+if __name__ == '__main__':
+    nbr_cells = 5
+    dt = 0.01
     t_start = 0
-    t_end = 5
+    t_end = 0.05
     w_0 = np.ones([nbr_cells,3])*np.array([1,0,2.5])
 
-    xbmove = lambda t: 1+0.1*np.sin(10*np.pi*t)
-    x = [0,xbmove(0)]
+    #xbmove = lambda t: 1+0.1*np.sin(10*np.pi*t)
+    xbmove = lambda t: np.cos(10*np.pi*t)
+    x = [0,1]
     
     solver = FVM(x,nbr_cells,xbmove)
     solution = solver.solve(t_start,t_end,dt,w_0)
+
+    t = np.linspace(t_start,t_end,int(1/dt)+1)
+    #plt.figure()
+    #plt.plot()
+    #plt.savefig("movement of x point")
+    
+    print(solution)
+    print(np.cos(10*np.pi*t))
