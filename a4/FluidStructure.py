@@ -70,19 +70,24 @@ class FVM():
             for i in range(self.nbr_cells+1):
                 
                 if i == self.nbr_cells:
-                    w_ghost = self.w[i-1,:]
-                    w_ghost[1] = -w_ghost[1] - w_ghost[0]*self.v_edge[i]
-                    self.w_next[i-1,:] -= dt*flux(self.w[i-1],w_ghost,self.v_edge[i],1)
-                    print(self.v_edge[i])
-
-                elif i == 0:
-                    w_ghost = self.w[i,:]
+                    w_ghost = self.w[i-1,:].copy()
                     w_ghost[1] = -w_ghost[1]
+                    self.w_next[i-1,:] += dt*flux(self.w[i-1],w_ghost,self.v_edge[i],-1)
+                    
+                elif i == 0:
+                    w_ghost = self.w[i,:].copy()
                     self.w_next[i,:] += dt*flux(w_ghost,self.w[i],self.v_edge[i],1)
 
+                    print(self.v_edge[i])
+                    print(flux(self.w[i-1],w_ghost,self.v_edge[i],1))
+                    print(w_ghost)
+                    print(self.w[i-1,:])
+                    print(self.w_next)
+
+
                 else:
-                    self.w_next[i,:] += dt*flux(self.w[i-1],self.w[i],self.v_edge[i],1)
-                    self.w_next[i-1,:] -= dt*flux(self.w[i-1],self.w[i],self.v_edge[i],1)
+                    self.w_next[i,:] += dt*flux(self.w[i],self.w[i-1],self.v_edge[i],1)
+                    self.w_next[i-1,:] += dt*flux(self.w[i-1],self.w[i],self.v_edge[i],-1)
             
             self.w = self.w_next/self.vol_i
             t_start += dt
@@ -91,18 +96,19 @@ class FVM():
         return self.sol
 
 if __name__ == '__main__':
-    nbr_cells = 5
-    dt = 0.01
+    nbr_cells = 10
+    dt = 0.1
     t_start = 0
-    t_end = 0.1
+    t_end = 0.5
     w_0 = np.ones([nbr_cells,3])*np.array([1,0,2.5])
+    w_0[3:5,0] = 2
     
 
     
 
     #xbmove = lambda t: 1+0.1*np.sin(10*np.pi*t)
-    xbmove = lambda t: np.cos(10*np.pi*t)
-    #xbmove = lambda t: 0
+    #xbmove = lambda t: np.pi*np.cos(10*np.pi*t)
+    xbmove = lambda t: 0
     x = [0,1]
     
     solver = FVM(x,nbr_cells,xbmove)
@@ -116,17 +122,17 @@ if __name__ == '__main__':
     print(solution)
     print(solution.shape)
     print("speed:")
-    print(solution[:,4,1]/solution[:,4,0])
+    print(solution[:,:,1]/solution[:,:,0])
 
     print("speed 0:")
-    print(solution[:,4,1]/solution[:,4,0])
+    print(solution[:,0,1]/solution[:,0,0])
 
     
     print("density:")
-    print(solution[:,4,0])
+    print(solution[:,9,0])
 
     print("energy:")
-    print(solution[:,4,2])
+    print(solution[:,9,2])
 
 
 
