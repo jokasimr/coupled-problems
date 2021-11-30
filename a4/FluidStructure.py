@@ -20,7 +20,7 @@ def lax_friedrichs(f):
         # TODO: is this correct?
         lmax = max(
             abs(n * wi[1] / wi[0]) + speed_of_sound(wi),
-            abs(n * wj[1] / wj[0]) + speed_of_sound(wj),
+            abs(n * wj[1] / wj[0]) + speed_of_sound(wi),
         )
 
         return 1/2 * (f(wi, v, n) + f(wj, v, n)) + 1/2 * lmax * (wj - wi)
@@ -56,8 +56,8 @@ class FVM():
     
     def solve(self,t_start,t_end,dt,w_0):
         
-        self.sol.append(self.vol_i*w_0)
-        self.w = self.vol_i*w_0
+        self.sol.append(w_0)
+        self.w = w_0
 
         while t_start <= t_end:
             self.w_next = self.w*self.vol_i
@@ -70,15 +70,11 @@ class FVM():
             for i in range(self.nbr_cells+1):
                 
                 if i == self.nbr_cells:
-                    print("Fishy stuff")
-                    print(self.w_next[i-1,:])
                     w_ghost = self.w[i-1,:]
-                    w_ghost[1] = -w_ghost[1] + w_ghost[0]*self.v_edge[i]
+                    w_ghost[1] = -w_ghost[1] - w_ghost[0]*self.v_edge[i]
                     self.w_next[i-1,:] -= dt*flux(self.w[i-1],w_ghost,self.v_edge[i],1)
-                    print("2")
-                    print(w_ghost)
-                    print(flux(self.w[i-1],w_ghost,self.v_edge[i],1))
-                    print(self.w_next[i-1,:])
+                    print(self.v_edge[i])
+
                 elif i == 0:
                     w_ghost = self.w[i,:]
                     w_ghost[1] = -w_ghost[1]
@@ -98,11 +94,15 @@ if __name__ == '__main__':
     nbr_cells = 5
     dt = 0.01
     t_start = 0
-    t_end = 0.05
+    t_end = 0.1
     w_0 = np.ones([nbr_cells,3])*np.array([1,0,2.5])
+    
+
+    
 
     #xbmove = lambda t: 1+0.1*np.sin(10*np.pi*t)
     xbmove = lambda t: np.cos(10*np.pi*t)
+    #xbmove = lambda t: 0
     x = [0,1]
     
     solver = FVM(x,nbr_cells,xbmove)
@@ -112,6 +112,23 @@ if __name__ == '__main__':
     #plt.figure()
     #plt.plot()
     #plt.savefig("movement of x point")
-    
+    solution = np.stack(solution)
     print(solution)
-    print(np.cos(10*np.pi*t))
+    print(solution.shape)
+    print("speed:")
+    print(solution[:,4,1]/solution[:,4,0])
+
+    print("speed 0:")
+    print(solution[:,4,1]/solution[:,4,0])
+
+    
+    print("density:")
+    print(solution[:,4,0])
+
+    print("energy:")
+    print(solution[:,4,2])
+
+
+
+
+    
