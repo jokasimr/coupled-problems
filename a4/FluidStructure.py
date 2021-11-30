@@ -85,11 +85,11 @@ class FVM():
                     w_ghost = self.w[i,:].copy()
                     w_ghost[1] = -w_ghost[1]
                     #w_ghost = np.array([1,-2,5])*self.vol_i
-                    #self.w_next[i,:] -= dt*flux(w_ghost,self.w[i],self.v_edge[i],1)
+                    #self.w_next[i,:] += dt*flux(w_ghost,self.w[i],self.v_edge[i],1)
 
                 else:
                     self.w_next[i,:] -= dt*flux(self.w[i],self.w[i-1],self.v_edge[i],1)
-                    self.w_next[i,:] += dt*flux(self.w[i],self.w[i-1],self.v_edge[i],1)
+                    self.w_next[i-1,:] += dt*flux(self.w[i],self.w[i-1],self.v_edge[i],1)
                     #self.w_next[i-1,:] -= dt*flux(self.w[i-1],self.w[i],self.v_edge[i],-1)
             
             #
@@ -104,10 +104,10 @@ class FVM():
 
 if __name__ == '__main__':
     
-    nbr_cells = 5
-    dt = 0.0001
+    nbr_cells = 20
+    dt = 0.001
     t_start = 0
-    t_end = 3
+    t_end = 5
     w_0 = np.ones([nbr_cells,3])*np.array([1,0,2.5])
     #w_0[2:10,0] = 5
     
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     #xbmove = lambda t: 1+0.1*np.sin(10*np.pi*t)
     xbmove = lambda t: np.pi*np.cos(10*np.pi*t)
     #xbmove = lambda t: 0
-    #xbmove = lambda t: -0.1
+    #xbmove = lambda t: -100
     x = [0,1]
     
     solver = FVM(x,nbr_cells,xbmove)
@@ -138,12 +138,17 @@ if __name__ == '__main__':
     plt.imshow(solution[:,:,1]/solution[:,:,0],interpolation=None,
     origin="lower",extent=[0, 1, 0, 1],)
     plt.colorbar()
+    plt.xlabel("Cells")
+    plt.ylabel("time")
     plt.savefig("speed")
 
     plt.figure()
     plt.imshow(solution[:,:,0],interpolation=None,
     origin="lower",extent=[0, 1, 0, 1],)
     plt.colorbar()
+    plt.xlabel("Cells")
+    plt.ylabel("time")
+
     plt.savefig("density")
 
     vol = []
@@ -163,6 +168,8 @@ if __name__ == '__main__':
 
     plt.figure()
     plt.plot(np.sum(np.transpose(vol)*solution[:,:,0],1))
+    plt.xlabel("number of time steps")
+    plt.ylabel("Total mass")
     plt.savefig("mass_increase")
 
     plt.figure()
