@@ -32,7 +32,7 @@ def reset():
     middle_left_wall = middle.geometry.boundary_dofs(3)
     middle_wall = np.concatenate([
         np.array([middle.geometry.boundary_dofs(0)[0]]),
-        middle.geometry.boundary_dofs(2),
+        middle.geometry.boundary_dofs(2)[:-1],
         middle_right_wall[:len(middle_right_wall) // 2 + 1],
         middle_left_wall[:len(middle_left_wall) // 2 + 1],
     ])
@@ -91,4 +91,5 @@ plt.xlabel('iteration')
 plt.ylabel('$||u_\Gamma||$')
 clean_figure()
 os.makedirs("convergence_plot", exist_ok=True)
-save('convergence_plot/convergence.tex')
+plt.show()
+#save('convergence_plot/convergence.tex')

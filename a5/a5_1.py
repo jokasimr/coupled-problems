@@ -5,17 +5,18 @@ sys.path.append('..')
 #from tikzplotlib import clean_figure, save
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.linalg import lstsq
 
 from solver.laplace import LaplaceOnRectangle, HeatEqOnRectangle
 
 
 h = 1/20
 
-dn_iter = 300
+dn_iter = 200
 tol_wr = 1e-10
 T_start = 0
-T_end = 10000
-dt = 1000
+T_end = 60
+dt = 0.5
 
 WALL = 210
 WINDOW = 200
@@ -60,7 +61,7 @@ def reset():
     middle_left_wall = middle.geometry.boundary_dofs(3)
     middle_wall = np.concatenate([
         np.array([middle.geometry.boundary_dofs(0)[0]]),
-        middle.geometry.boundary_dofs(2),
+        middle.geometry.boundary_dofs(2)[:-1],
         middle_right_wall[:len(middle_right_wall) // 2 + 1],
         middle_left_wall[:len(middle_left_wall) // 2 + 1],
     ])
@@ -84,77 +85,116 @@ rm_interface = middle.geometry.boundary_dofs(1)[len(middle.geometry.boundary_dof
 rr_interface = right.geometry.boundary_dofs(3)[1:-1][::-1]
 
 
+def dn(u_gamma_left, u_gamma_right):
+
+    reset()
+
+    '''
+    middle.set_dirchlet(lm_interface, u_gamma_left, raw=True)
+    middle.set_dirchlet(rm_interface, u_gamma_right, raw=True)
+    middle.do_euler_step()
+
+    flux_left = middle.heat_flux_at_nodes(lm_interface)
+    flux_right = middle.heat_flux_at_nodes(rm_interface)
+
+    left.set_neumann(ll_interface, -flux_left, raw=True)
+    right.set_neumann(rr_interface, -flux_right, raw=True)
+
+    left.do_euler_step()
+    right.do_euler_step()
+
+    u_gamma_left = (1 - theta) * u_gamma_left + theta * left.sol[ll_interface]
+    u_gamma_right = (1 - theta) * u_gamma_right + theta * right.sol[rr_interface]
+
+    '''
+
+    left.set_dirchlet(ll_interface, u_gamma_left, raw=True)
+    right.set_dirchlet(rr_interface, u_gamma_right, raw=True)
+
+    left.do_euler_step()
+    right.do_euler_step()
+
+    flux_left = left.heat_flux_at_nodes(ll_interface)
+    flux_right = right.heat_flux_at_nodes(rr_interface)
+
+    middle.set_neumann(lm_interface, -flux_left, raw=True)
+    middle.set_neumann(rm_interface, -flux_right, raw=True)
+
+    middle.do_euler_step()
+
+    u_gamma_left, u_gamma_right = middle.sol[lm_interface], middle.sol[rm_interface]
+
+    return u_gamma_left, u_gamma_right
+ 
+def qn(xs, hs):
+    R = np.array([h - x for h, x in zip(hs, xs)]).T
+    V = np.diff(R)
+    W = np.diff(np.array([x for x in xs]).T)
+    alpha, _, _, _ = lstsq(V, -R[:, -1])
+    return xs[-1] + W @ alpha
+
+
 u_gamma_left = WALL * np.ones(len(ll_interface))
 u_gamma_right = WALL * np.ones(len(rr_interface))
+u_gamma = np.concatenate((u_gamma_left, u_gamma_right))
 
-#theta = 0.0415
-#theta = 0.0234/(1+0.0234)
-theta = 0.0234
+#theta = 0.59
+#theta = 0.64
+theta = 1.0
 time_steps = int((T_end - T_start) // dt)
 
 for j in range(time_steps):
+
+    u_g_ls = [u_gamma_left]
+    u_g_rs = [u_gamma_right]
+    h_ls = []
+    h_rs = []
+
+    u_gs = [u_gamma]
+    h_s = []
+
     for i in range(dn_iter):
 
-        reset()
+        u_gamma_old = u_gamma
 
-        '''
-        middle.set_dirchlet(lm_interface, u_gamma_left, raw=True)
-        middle.set_dirchlet(rm_interface, u_gamma_right, raw=True)
-        middle.do_euler_step()
+        u_gamma_left, u_gamma_right = u_gamma[:len(u_gamma)//2], u_gamma[len(u_gamma)//2:]
+        #u_gamma_left_old, u_gamma_right_old = u_gamma_left, u_gamma_right
 
-        flux_left = middle.heat_flux_at_nodes(lm_interface)
-        flux_right = middle.heat_flux_at_nodes(rm_interface)
+        u_gamma_left, u_gamma_right = dn(u_gamma_left, u_gamma_right)
+        u_gamma = np.concatenate((u_gamma_left, u_gamma_right))
 
-        left.set_neumann(ll_interface, -flux_left, raw=True)
-        right.set_neumann(rr_interface, -flux_right, raw=True)
+        h_s.append(u_gamma)
+        #h_ls.append(u_gamma_left)
+        #h_rs.append(u_gamma_right)
 
-        left.do_euler_step()
-        right.do_euler_step()
+        if i == 0:
+            #u_gamma_left = (1 - theta) * u_gamma_left_old + theta * u_gamma_left
+            #u_gamma_right = (1 - theta) * u_gamma_right_old + theta * u_gamma_right
+            u_gamma = (1 - theta) * u_gamma_old + theta * u_gamma
 
-        ug = np.concatenate((u_gamma_left, u_gamma_right))
+        else:
+            u_gamma = qn(u_gs, h_s)
+            #u_gamma_left = qn(u_g_ls, h_ls)
+            #u_gamma_right = qn(u_g_rs, h_rs)
+        
+        u_gs.append(u_gamma)
+        #u_g_ls.append(u_gamma_left)
+        #u_g_rs.append(u_gamma_right)
 
-        u_gamma_left = ((1 - theta) * u_gamma_left + theta * left.sol[ll_interface].copy())
-        u_gamma_right = ((1 - theta) * u_gamma_right + theta * right.sol[rr_interface].copy())
+        #ug_new = np.concatenate((u_gamma_left, u_gamma_right))
 
-        ug_new = np.concatenate((u_gamma_left, u_gamma_right))
+        #print(ug)
+        print(i, np.linalg.norm(u_gamma - u_gamma_old, 2))
+        if j == 0:
+            ugs0=u_gs
+            hs0=h_s
 
-        if np.linalg.norm(ug - ug_new, 2) < tol_wr or i + 1 == dn_iter:
+        if np.linalg.norm(u_gamma - u_gamma_old, 2) < tol_wr or i + 1 == dn_iter:
             middle.update_u_old()
             left.update_u_old()
             right.update_u_old()
             print(i)
             break
-
-        '''
-
-        left.set_dirchlet(ll_interface, u_gamma_left, raw=True)
-        right.set_dirchlet(rr_interface, u_gamma_right, raw=True)
-
-        left.do_euler_step()
-        right.do_euler_step()
-
-        flux_left = left.heat_flux_at_nodes(ll_interface)
-        flux_right = right.heat_flux_at_nodes(rr_interface)
-
-        middle.set_neumann(lm_interface, -flux_left, raw=True)
-        middle.set_neumann(rm_interface, -flux_right, raw=True)
-
-        middle.do_euler_step()
-
-        ug = np.concatenate((u_gamma_left,u_gamma_right))
-
-        u_gamma_left = ((1 - theta) * u_gamma_left + theta * middle.sol[lm_interface].copy())
-        u_gamma_right = ((1 - theta) * u_gamma_right + theta * middle.sol[rm_interface].copy())
-
-        ug_new = np.concatenate((u_gamma_left, u_gamma_right))
-
-        if np.linalg.norm(ug - ug_new, 2) < tol_wr or i + 1 == dn_iter:
-            middle.update_u_old()
-            left.update_u_old()
-            right.update_u_old()
-            print(i)
-            break
-
         
 
 print(middle.sol)

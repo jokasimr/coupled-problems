@@ -6,7 +6,7 @@ class Rectangle:
 
     def __init__(self, width, height, dx, dy):
         assert width / dx == round(width / dx), "`width` must be evenly divisible by `dx`"
-        assert height / dx == round(height / dx), "`height` must be evenly divisible by `dx`"
+        assert height / dy == round(height / dy), "`height` must be evenly divisible by `dy`"
         self.dofs_per_row = round(width / dx) + 1
         self.dofs_per_col = round(height / dy) + 1
         self.ndofs = self.dofs_per_row * self.dofs_per_col
