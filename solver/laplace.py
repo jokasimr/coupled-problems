@@ -185,7 +185,6 @@ class HeatEqOnRectangle(LaplaceOnRectangle):
             self.sol[boundary] = fd(x, y)
 
         self.rhs -= self.A_hat[:, boundary] @ self.sol[boundary]
-        self.rhs += self.alpha * (self.M[:, boundary] @ self.u_old[boundary])
 
     def set_neumann(self, e, fn, raw=False):
         if hasattr(e, '__iter__'):
@@ -204,13 +203,13 @@ class HeatEqOnRectangle(LaplaceOnRectangle):
     def do_euler_step(self):
         active_dofs = list(set(self.geometry.dofs) - self.boundary_set)
 
-        rhs = self.rhs + self.alpha * (self.M[:, active_dofs] @ self.u_old[active_dofs])
+        rhs = self.rhs + self.alpha * (self.M @ self.u_old)
 
         self.sol[active_dofs] = spsolve(self.A_hat[active_dofs, :][:, active_dofs], rhs[active_dofs])
         return self.sol
     
     def heat_flux_at_nodes(self, i):
-        return self.A_hat[i] @ self.sol - self.alpha * self.M[i] @ self.u_old
+        return self.A_hat[i] @ self.sol - self.alpha * self.M[i]  @ self.u_old
 
     def update_u_old(self):
         self.u_old = self.sol.copy()

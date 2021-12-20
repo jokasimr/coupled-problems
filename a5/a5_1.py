@@ -40,8 +40,8 @@ u0_r = np.vectorize(lambda x, y, q=1e-5: (
 ))
 
 left = HeatEqOnRectangle(dt, h, 1, 1, lambda x, y: x*0, initial_condition=u0_l)
-#middle = HeatEqOnRectangle(dt, h, 1, 2, lambda x, y: x*0, initial_condition=u0_m, heat_capacitance=1300, heat_conductivity=0.0243)
-middle = HeatEqOnRectangle(dt, h, 1, 2, lambda x, y: x*0, initial_condition=u0_m, heat_capacitance=1, heat_conductivity=1)
+middle = HeatEqOnRectangle(dt, h, 1, 2, lambda x, y: x*0, initial_condition=u0_m, heat_capacitance=1300, heat_conductivity=0.0243)
+#middle = HeatEqOnRectangle(dt, h, 1, 2, lambda x, y: x*0, initial_condition=u0_m, heat_capacitance=1, heat_conductivity=1)
 right = HeatEqOnRectangle(dt, h, 1, 1, lambda x, y: x*0, initial_condition=u0_r)
 
 def reset():
@@ -61,7 +61,7 @@ def reset():
     middle_left_wall = middle.geometry.boundary_dofs(3)
     middle_wall = np.concatenate([
         np.array([middle.geometry.boundary_dofs(0)[0]]),
-        middle.geometry.boundary_dofs(2),
+        middle.geometry.boundary_dofs(2)[:-1],
         middle_right_wall[:len(middle_right_wall) // 2 + 1],
         middle_left_wall[:len(middle_left_wall) // 2 + 1],
     ])
@@ -140,7 +140,7 @@ u_gamma = np.concatenate((u_gamma_left, u_gamma_right))
 
 #theta = 0.59
 #theta = 0.64
-theta = 0.62
+theta = 1.0
 time_steps = int((T_end - T_start) // dt)
 
 for j in range(time_steps):
