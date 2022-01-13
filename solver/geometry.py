@@ -37,7 +37,7 @@ class Rectangle:
         y = self.dy * (indexes // self.dofs_per_row)
         return x, y
 
-    def boundary_dofs(self, e):
+    def boundary_dofs(self, e=None):
         if e == 0:
             return np.arange(self.dofs_per_row)
         if e == 1:
@@ -47,7 +47,14 @@ class Rectangle:
             return total_dofs - np.arange(self.dofs_per_row)
         if e == 3:
             return np.arange(self.dofs_per_col - 1, -1, -1) * self.dofs_per_row
-        raise ValueError(f"boundary index must be in (0, 1, 2, 3)")
+        if e is None:
+            return np.concatenate((
+                self.boundary_dofs(0),
+                self.boundary_dofs(1)[1:],
+                self.boundary_dofs(2)[1:],
+                self.boundary_dofs(3)[1:]))
+
+        raise ValueError(f"boundary index must be in (0, 1, 2, 3) if provided")
 
     def boundary_elems(self, e):
         elems_per_row = self.dofs_per_row - 1
