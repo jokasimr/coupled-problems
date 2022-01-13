@@ -24,18 +24,18 @@ HEATER = 230
 
 u0_l = np.vectorize(lambda x, y, q=1e-5: (
     WALL if y < q or y > 1 - q else
-    HEATER if x < q else 
+    HEATER if x < q else
     WALL
 ))
 u0_m = np.vectorize(lambda x, y, q=1e-5: (
     WALL if y > 2 - q else
     WALL if x < q and y >= 1/2 or x > 1 - q and y <= 1/2 else
     WINDOW if y < q else
-    220 
+    220
 ))
 u0_r = np.vectorize(lambda x, y, q=1e-5: (
     WALL if y < q or y > 1 - q else
-    HEATER if x > 1 - q else 
+    HEATER if x > 1 - q else
     WALL
 ))
 
@@ -45,7 +45,7 @@ middle = HeatEqOnRectangle(dt, h, 1, 2, lambda x, y: x*0, initial_condition=u0_m
 right = HeatEqOnRectangle(dt, h, 1, 1, lambda x, y: x*0, initial_condition=u0_r)
 
 def reset():
-    
+
     left.reset()
     middle.reset()
     right.reset()
@@ -125,7 +125,7 @@ def dn(u_gamma_left, u_gamma_right):
     u_gamma_left, u_gamma_right = middle.sol[lm_interface], middle.sol[rm_interface]
 
     return u_gamma_left, u_gamma_right
- 
+
 def qn(xs, hs):
     R = np.array([h - x for h, x in zip(hs, xs)]).T
     V = np.diff(R)
@@ -140,7 +140,7 @@ u_gamma = np.concatenate((u_gamma_left, u_gamma_right))
 
 #theta = 0.59
 #theta = 0.64
-theta = 1.0
+theta = 0.64
 time_steps = int((T_end - T_start) // dt)
 
 for j in range(time_steps):
@@ -168,15 +168,16 @@ for j in range(time_steps):
         #h_rs.append(u_gamma_right)
 
         if i == 0:
+        #if i < 100:
             #u_gamma_left = (1 - theta) * u_gamma_left_old + theta * u_gamma_left
             #u_gamma_right = (1 - theta) * u_gamma_right_old + theta * u_gamma_right
             u_gamma = (1 - theta) * u_gamma_old + theta * u_gamma
 
         else:
-            u_gamma = qn(u_gs, h_s)
+            u_gamma = qn(h_s, u_gs)
             #u_gamma_left = qn(u_g_ls, h_ls)
             #u_gamma_right = qn(u_g_rs, h_rs)
-        
+
         u_gs.append(u_gamma)
         #u_g_ls.append(u_gamma_left)
         #u_g_rs.append(u_gamma_right)
@@ -195,7 +196,7 @@ for j in range(time_steps):
             right.update_u_old()
             print(i)
             break
-        
+
 
 print(middle.sol)
 print(right.sol)
