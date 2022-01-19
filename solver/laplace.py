@@ -166,8 +166,14 @@ class HeatEqOnRectangle(LaplaceOnRectangle):
 
     def _initialize(self):
         super()._initialize()
+        self.set_initial_condition()
+
+    def set_initial_condition(self):
         x, y = self.geometry.coords(self.geometry.dofs)
         self.u_old = self.initial_condition(x, y)
+
+    def reset(self):
+        super().reset()
         self.A_hat = self.alpha * self.M + self.dt * self.A
 
     def set_dirchlet(self, e, fd, raw=False):
